@@ -220,8 +220,8 @@ class LeggerWidget(QDockWidget):
         # create line layer and add to map
         self.layer_manager = LeggerMapManager(self.iface, self.path_legger_db)
 
-        self.line_layer = self.layer_manager.get_line_layer(add_to_map=False)
-        self.layer_manager.get_line_layer(add_to_map=True)
+        # self.line_layer = self.layer_manager.get_line_layer(add_to_map=False)
+        self.line_layer = self.layer_manager.get_line_layer(add_to_map=True)
         self.vl_tree_layer = self.layer_manager.get_virtual_tree_layer(add_to_map=True)
         self.vl_endpoint_layer = self.layer_manager.get_endpoint_layer(add_to_map=True)
         self.vl_track_layer = self.layer_manager.get_track_layer(add_to_map=True)
@@ -234,7 +234,7 @@ class LeggerWidget(QDockWidget):
             self.iface, self.line_layer.crs())
 
         log.warning('starting: clickTool')
-        self.clickTool = clickTool(iface, self.vl_tree_layer, self.onMapClick)
+        self.clickTool = clickTool(iface, self.line_layer, self.onMapClick)
         self.click_tool_active = False
         self.last_map_tool = None
 
@@ -313,13 +313,63 @@ class LeggerWidget(QDockWidget):
         return
 
     def onMapClick(self, identifyFeatures):
+
         if len(identifyFeatures):
-            hydro_id = identifyFeatures[0].mFeature.attribute('hydro_id')
+            hydro_id = identifyFeatures[0].mFeature.attribute('id')
+            log.info('click on hydro_id: {}'.format(hydro_id))
+            self.select_hydrovak(hydro_id)
+
+    def select_hydrovak(self, hydro_id):
+        def find_child(node, line_nr):
+
+            if node.data_item and node.data_item.get('line_nr') == line_nr:
+                index = self.area_model.createIndex(node.row(), 0, node)
+                # self.startpoint_tree_widget.setExpanded(index, True)
+                return node
+            for child in node.childs:
+                found = find_child(child, line_nr)
+                if found:
+                    return found
+            return None
+
+        node = self.legger_model.rootItem.child(0)
+        index = self.legger_model.find_younger(self.legger_model.createIndex(node.row(), 0, node),
+                                               'hydro_id',
+                                               hydro_id)
+        if index:
+            self.open_parents_recursive(index)
+            node = index.internalPointer()
+            self.legger_model.setDataItemKey(node, 'selected', Qt.Checked)
+            self.legger_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
+
+            if self.click_tool_active:
+                self.toggleMapTool()
+        else:
+            arc = self.network.get_arc_by_id(hydro_id)
+            if not arc:
+                return
+            start_arc = self.network.get_start_arc_of_arc(arc)
+            if not start_arc:
+                return
+            # find child in tree
+            item = find_child(self.area_model.rootItem, start_arc['line_nr'])
+            if not item:
+                return
+            index = self.area_model.createIndex(item.row(), 0, item)
+
+            self.area_model.setDataItemKey(item, 'selected', Qt.Checked)
+            self.startpoint_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
+
             node = self.legger_model.rootItem.child(0)
-            index = self.legger_model.find_younger(self.legger_model.createIndex(node.row(), 0, node), 'hydro_id',
+            index = self.legger_model.find_younger(self.legger_model.createIndex(node.row(), 0, node),
+                                                   'hydro_id',
                                                    hydro_id)
             if index:
-                self.select_hydrovak(index)
+                self.open_parents_recursive(index)
+                node = index.internalPointer()
+                self.legger_model.setDataItemKey(node, 'selected', Qt.Checked)
+                self.legger_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
+
                 if self.click_tool_active:
                     self.toggleMapTool()
 
@@ -342,18 +392,18 @@ class LeggerWidget(QDockWidget):
         if parent and parent.internalPointer():
             self.open_parents_recursive(parent)
 
+    def open_parents_recursive_area(self, index):
+        self.startpoint_tree_widget.setExpanded(index, True)
+        parent = index.parent()
+        if parent and parent.internalPointer():
+            self.open_parents_recursive_area(parent)
+
     def search_hydrovak_combo(self):
         code = self.search_hydrovak.currentText()
-        node = self.legger_model.rootItem.child(0)
-        index = self.legger_model.find_younger(self.legger_model.createIndex(node.row(), 0, node), 'code', code)
-        if index:
-            self.select_hydrovak(index)
-
-    def select_hydrovak(self, index):
-        self.open_parents_recursive(index)
-        node = index.internalPointer()
-        self.legger_model.setDataItemKey(node, 'selected', Qt.Checked)
-        self.legger_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
+        arc = self.network.get_arc_by_hydro_id(code)
+        log.info('search_hydrovak_combo: %s, %s', code, str(arc))
+        if arc:
+            self.select_hydrovak(arc['id'])
 
     def open_kijkprofiel_dialog(self):
 
@@ -449,6 +499,7 @@ class LeggerWidget(QDockWidget):
             # stop here, already value there
             return
 
+        did_select_depth = False
         if initial and variant_id is None:
             pass
         elif node.hydrovak['variant_min_depth'] is None:
@@ -496,6 +547,7 @@ class LeggerWidget(QDockWidget):
                 if hover:
                     # self.legger_model.setDataItemKey(node, 'sel d', depth)
                     self.legger_model.setDataItemKey(node, 'selected_depth_tmp', depth)
+                    did_select_depth = True
                 else:
                     # get all info to display in legger table
                     over_depth = node.hydrovak.get('depth') - depth if node.hydrovak.get('depth') is not None else None

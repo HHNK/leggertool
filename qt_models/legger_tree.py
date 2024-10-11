@@ -458,7 +458,7 @@ class LeggerTreeModel(BaseTreeModel):
 
         def loop(node):
             index = self.createIndex(node.row(), 0, node)
-            if tree_widget and tree_widget.isExpanded(index):  # node.childCount() > 0 and :
+            if len(node.childs) > 0 and tree_widget and tree_widget.isExpanded(index):  # node.childCount() > 0 and :
                 result = loop(node.child(0))
             elif node.parent().childCount() - 1 == node.row():
                 return node

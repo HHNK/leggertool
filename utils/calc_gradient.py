@@ -14,7 +14,7 @@ from legger.utils.link_duikers_to_hydrovakken import link_duikers_to_hydrovakken
 log = logging.getLogger(__name__)
 
 
-def calc_and_set_tot_verhang(network, line, tot_verhang, target_level):
+def calc_and_set_tot_verhang(network, line, tot_verhang, target_level, category=None):
     line_target_level = line.target_level
     if target_level != line_target_level:
         tot_verhang = 0
@@ -36,6 +36,7 @@ def calc_and_set_tot_verhang(network, line, tot_verhang, target_level):
         tot_verhang = tot_verhang + line.duiker_count * 0.01
 
     if line.tot_verhang is not None:
+        # todo: add check for primary, only look at primary lines
         if line.tot_verhang <= tot_verhang:
             # we already have a lower value for all upstream nodes, so break this iteration
             return
@@ -47,6 +48,7 @@ def calc_and_set_tot_verhang(network, line, tot_verhang, target_level):
 
 
 def calc_gradient_for_network(network: Network):
+    # todo: first primary lines, then secondary and tertaire lines??
     for start_node in network.graph.get_startnodes():
         for start_line in start_node.inflow(modus=start_node.DEBIET_DB):
             calc_and_set_tot_verhang(network, start_line, 0, start_line.target_level)

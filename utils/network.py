@@ -65,6 +65,9 @@ class Line(Definitions):
         # ignore to only redirect flow for part
         self.ignore = False
 
+        # kan weg
+        self.is_start_arc = False
+
         self.extra_data = {
             **extra
         }
@@ -510,9 +513,15 @@ class Network(object):
         return self._graph
 
     def force_direction(self, mode=Definitions.DEBIET_3DI, do_reverse=True, ignore_manual_startnodes=False,
-                        start_min_category=1, only_without_flow=False):
+                        start_min_category=1, only_without_flow=False, primary_forced_category=1):
         # line_nr, weight, freeze
         tree = [[None, float("inf"), False, n.min_category] for n in self.graph.nodes]
+
+        if mode == Definitions.DEBIET_DB:
+            do_reverse = False
+            ignore_manual_startnodes = True
+            start_min_category = 4
+            primary_forced_category = 4
 
         # node, tot_weight
         all_start_nodes = [[n, 0, n.min_category] for n in
@@ -541,11 +550,14 @@ class Network(object):
         while len(queue) > 0:
             node, tot_weight = queue.pop()
             for line in node.inflow(mode, include_nones=True):
+                if line.nr == 957:
+                    a = 1
+
                 if line.ignore:
                     continue
 
                 line: Line
-                if line.category == 1:
+                if line.category <= primary_forced_category:
                     to_node = line.inflow_node(mode)
                     if line.debiet(mode) is None:
                         factor = 2
@@ -573,7 +585,10 @@ class Network(object):
                 if line.ignore:
                     continue
 
-                if line.category == 1:
+                if line.id == 957:
+                    a = 1
+
+                if line.category <= primary_forced_category:
                     to_node = line.end_node()
                     if tree[to_node.nr][2]:
                         # freezed, so skip
@@ -628,6 +643,10 @@ class Network(object):
                 if line.ignore:
                     continue
                 line: Line
+
+                if line.nr == 957:
+                    a = 1
+
                 to_node = line.inflow_node(mode)
                 if tree[to_node.nr][2]:
                     # freezed, so skip
@@ -1032,6 +1051,11 @@ class Network(object):
             inflow_node = line.inflow_node(Definitions.DEBIET_DB)
             outflow_node = line.outflow_node(Definitions.DEBIET_DB)
 
+            if int(line_feature.id()) == 109386:
+                a = 1
+            if line.nr == 957:
+                a = 1
+
             line_tree[line.nr] = hydrovak_class(
                 data_dict={
                     # basic information
@@ -1043,6 +1067,7 @@ class Network(object):
                     'weight': line.length,
                     'category': line.category,
                     'tree_end': line.extra_data.get('tree_end'),
+                    'is_start_arc': line.is_start_arc,
                     # info need to be generated later
                     'downstream_line_nr': tree[outflow_node.nr][0],
                     'upstream_line_nrs': None,
@@ -1072,6 +1097,7 @@ class Network(object):
         # are arcs after a target_level change
         for line_nr, hline in line_tree.items():
             out_node = self.graph.node(hline['out_node'])
+
             # link line with highest flow
             downstream_line_old = next(iter(sorted(out_node.outflow(Definitions.DEBIET_DB),
                                                    key=lambda l: (
@@ -1085,6 +1111,8 @@ class Network(object):
                                                                                    'downstream_line_nr'] is not None else None
 
             if hline['downstream_line_nr'] is None or not downstream_line_old:
+
+                hline.set('is_start_arc', True)
 
                 start_lines[line_nr] = {
                     'line_nr': line_nr,
@@ -1100,6 +1128,9 @@ class Network(object):
             elif (downstream_line.target_level is not None and
                   hline.get('target_level') is not None and
                   downstream_line.target_level != hline.get('target_level')):
+
+                hline.set('is_start_arc', True)
+
                 in_between_lines[line_nr] = {
                     'line_nr': line_nr,
                     'point': out_node.point,  # out_vertex.point()
@@ -1392,3 +1423,24 @@ class Network(object):
             return
 
         self.start_arc_tree = id_start_arc
+
+    def get_arc_by_id(self, id_arc):
+        for arc in self.arc_tree.values():
+            if arc['id'] == id_arc:
+                return arc
+
+    def get_arc_by_hydro_id(self, hydro_id_arc):
+        for arc in self.arc_tree.values():
+            if arc['code'] == hydro_id_arc:
+                return arc
+
+    def get_start_arc_of_arc(self, arc: Line):
+        # recursive downstream till hline['downstream_line_nr'] is None
+        while arc is not None:
+            if arc['downstream_line_nr'] is None or arc['downstream_line_nr'] == -1:
+                return arc
+            if arc['is_start_arc']:
+                return arc
+            if arc['line_nr'] == arc['downstream_line_nr']:
+                return arc
+            arc = self.arc_tree[arc['downstream_line_nr']]
