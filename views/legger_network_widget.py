@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 from collections import OrderedDict
 from qgis.PyQt.QtCore import QMetaObject, QSize, Qt, pyqtSignal, QVariant, QSortFilterProxyModel
 from qgis.PyQt.QtWidgets import (QApplication, QComboBox, QDockWidget, QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit,
@@ -488,6 +489,9 @@ class LeggerWidget(QDockWidget):
                     - 'maximum' --> not implemented yet
         :return:
         """
+        start = time.time()
+        start_sub = time.time()
+        sum_time = 0
         profile_variant_count = None
 
         output_hydrovakken = [node]
@@ -499,18 +503,29 @@ class LeggerWidget(QDockWidget):
             # stop here, already value there
             return
 
+        duration_part1 = time.time() - start_sub
+        start_sub = time.time()
+
+        duration_part2a = 0
+        duration_part2b = 0
+        duration_part2c = 0
         did_select_depth = False
+
         if initial and variant_id is None:
             pass
         elif node.hydrovak['variant_min_depth'] is None:
             # no variants available, so skip this one and continue downstream
             pass
         else:
+            duration_part2a = time.time() - start_sub
+            start_sub = time.time()
             # get selected variant. if variant_id is None, try based on depth and begroeiingsvariant
             if variant_id is not None:
+                time_sum_start = time.time()
                 profile_variant = self.session.query(Varianten).filter(Varianten.id == variant_id)
                 if begroeiingsvariant is None or begroeiingsvariant == 'all' and profile_variant.count():
                     begroeiingsvariant = profile_variant[0].begroeiingsvariant_id
+                sum_time += time.time() - time_sum_start
             else:
                 # use given begroeiingsvariant if stategy is all_upstream otherwise use begroeiingsgraad
                 # set on hydrovak or the default begroeiingsgraad
@@ -518,6 +533,7 @@ class LeggerWidget(QDockWidget):
                 #  "type(begroeiingsvariant) != str" is to filter out setting 'all'
                 if begroeiings_strategy == 'all_upstream' and begroeiingsvariant is not None and type(
                         begroeiingsvariant) != str:
+                    time_sum_start = time.time()
                     if type(begroeiingsvariant) == int:
                         begroeiingsvariant_int = begroeiingsvariant
                     else:
@@ -529,7 +545,9 @@ class LeggerWidget(QDockWidget):
                         Varianten.diepte < depth + precision,
                         Varianten.diepte > depth - precision
                     )
+                    sum_time += time.time() - time_sum_start
                 else:
+                    time_sum_start = time.time()
                     profile_variant = self.session.query(Varianten).filter(
                         Varianten.hydro_id == node.hydrovak.get('hydro_id'),
                         or_(Varianten.hydro.has(
@@ -539,15 +557,21 @@ class LeggerWidget(QDockWidget):
                         Varianten.diepte < depth + precision,
                         Varianten.diepte > depth - precision
                     )
+                    sum_time += time.time() - time_sum_start
 
+            duration_part2b = time.time() - start_sub
+            start_sub = time.time()
             profile_variants = profile_variant.all()
             profile_variant_count = len(profile_variants) if profile_variants else 0
+            duration_part2c = time.time() - start_sub
+            start_sub = time.time()
 
             if profile_variant_count > 0:
                 if hover:
                     # self.legger_model.setDataItemKey(node, 'sel d', depth)
                     self.legger_model.setDataItemKey(node, 'selected_depth_tmp', depth)
                     did_select_depth = True
+                    pass
                 else:
                     # get all info to display in legger table
                     over_depth = node.hydrovak.get('depth') - depth if node.hydrovak.get('depth') is not None else None
@@ -601,6 +625,9 @@ class LeggerWidget(QDockWidget):
                 # no variant which fits criteria. stop iteration here
                 return
 
+        duration_part3 = time.time() - start_sub
+        start_sub = time.time()
+
         if begroeiings_strategy == 'only_this_hydrovak':
             begroeiingsvariant = None
         elif begroeiings_strategy == 'all_upstream':
@@ -622,6 +649,18 @@ class LeggerWidget(QDockWidget):
                 child = traject_nodes.pop(0)
                 loop_childs = [child]
 
+        duration_part4 = time.time() - start_sub
+
+        log.debug('loop_tree took {:4f} seconds without children of which {:4f} for query and {:4f} variants'
+                  .format(time.time() - start, sum_time, profile_variant_count if profile_variant_count else 0))
+        log.debug('loop_tree took {:4f} seconds with {:4f} for part 1, {:4f} for part 2a, {:4f} for part 2b,'
+                  ' {:4f} for part 2c,'
+                  ' {:4f} for part 3, '
+                  '{:4f} for part 4, did_select_depth: {}'
+                  .format(time.time() - start, duration_part1, duration_part2a,
+                          duration_part2b, duration_part2c,
+                          duration_part3, duration_part4,
+                          did_select_depth))
         for young in loop_childs:
             hydrovakken = self.loop_tree(
                 young,
@@ -871,6 +910,7 @@ class LeggerWidget(QDockWidget):
 
         elif self.variant_model.columns[index.column()].name == 'hover':
             if item.hover.value:
+                start = time.time()
                 # only one selected at the time
                 item.color.value = list(item.color.value)[:3] + [255]
                 for row in self.variant_model.rows:
@@ -896,6 +936,8 @@ class LeggerWidget(QDockWidget):
                         15)
                     return
 
+                sub_start = time.time()
+
                 hydrovakken = self.loop_tree(
                     self.legger_model.selected,
                     depth=depth,
@@ -908,12 +950,17 @@ class LeggerWidget(QDockWidget):
                     traject_nodes=traject
                 )
 
+                log.debug('loop_tree took {:4f} seconds'.format(time.time() - sub_start))
+
                 # set map visualisation of selected hydrovakken
                 self.network._virtual_tree_layer.setSubsetString(
                     '"hydro_id" in (\'{ids}\')'.format(
                         ids='\',\''.join([str(hydrovak.hydrovak['hydro_id']) for hydrovak in hydrovakken])))
                 # trigger repaint of sideview
                 self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+
+                log.debug('data_changed_variant (hover) took {:4f} seconds'.format(time.time() - start))
+
             else:
                 self.legger_model.set_column_value('selected_depth_tmp', None)
                 # reset map visualisation
