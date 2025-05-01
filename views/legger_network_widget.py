@@ -854,18 +854,21 @@ class LeggerWidget(QDockWidget):
                 selected_variant_id = item.name.value
                 traject = []
 
+                child_strategy = self.get_child_selection_strategy()
+
                 if self.legger_model.ep:
                     traject = self.legger_model.ep.up(self.legger_model.selected)
                     traject.reverse()
                     if len(traject) > 0:
                         traject.pop(0)
                 else:
-                    messagebar_message(
-                        'Traject nodig',
-                        'Selecteer eerst een traject (sp en ep) voordat diepte kan worden doorgetrokken.',
-                        1,
-                        15)
-                    return
+                    if child_strategy in ['selected_branch_till_value', 'selected_branch_till_end']:
+                        messagebar_message(
+                            'Traject nodig',
+                            'Selecteer eerst een traject (sp en ep) voordat diepte kan worden doorgetrokken.',
+                            1,
+                            15)
+                        child_strategy = 'selected_hydrovak'
 
                 self.loop_tree(
                     self.legger_model.selected,
@@ -873,7 +876,7 @@ class LeggerWidget(QDockWidget):
                     initial=False,
                     variant_id=selected_variant_id,
                     begroeiingsvariant=self.get_begroeiings_variant(),
-                    child_strategy=self.get_child_selection_strategy(),
+                    child_strategy=child_strategy,
                     begroeiings_strategy=self.get_begroeiings_strategy(),
                     traject_nodes=traject
                 )
