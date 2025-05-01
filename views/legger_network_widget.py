@@ -691,6 +691,9 @@ class LeggerWidget(QDockWidget):
         elif self.legger_model.columns[index.column()].get('field') == 'selected':
             if self.legger_model.data(index, role=Qt.CheckStateRole) == Qt.Unchecked:
                 self.save_remarks()
+
+                if self._new_window is not None:
+                    self._new_window.close()
                 self.selected_variant_remark.setPlainText('')
                 self.selected_variant_remark.setDisabled(True)
                 self.kijk_variant_knop.setDisabled(True)
@@ -793,6 +796,9 @@ class LeggerWidget(QDockWidget):
                 self.legger_model.set_column_value('selected', False)
                 self.legger_model.set_column_value('ep', False)
                 self.legger_model.set_column_value('sp', False)
+
+                if self._new_window is not None:
+                    self._new_window.close()
 
                 area_item = self.area_model.data(index, role=Qt.UserRole)
 
