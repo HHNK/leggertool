@@ -3,13 +3,12 @@ import os
 import sqlite3
 import typing
 from decimal import Decimal, getcontext
-from math import ceil, sqrt
+from math import sqrt
 
 try:
     from legger.sql_models.legger import Varianten, get_or_create
     from legger.sql_models.legger_database import load_spatialite
 except ImportError:
-    from sql_models.legger import Varianten, get_or_create
     from sql_models.legger_database import load_spatialite
 
 log = logging.getLogger('legger.' + __name__)
@@ -179,6 +178,7 @@ class HydroObject(object):
 
     def __init__(self,
                  object_id,
+                 object_code,
                  ditch_depth,
                  zpeil_diff,
                  ditch_width,
@@ -190,6 +190,7 @@ class HydroObject(object):
                  debiet_inlaat):
 
         self.object_id = object_id
+        self.object_code = object_code
         self.ditch_depth = Decimal(ditch_depth) if ditch_depth is not None else None
         self.zpeil_diff = Decimal(zpeil_diff) if zpeil_diff is not None else Decimal(0)
         self.ditch_width = Decimal(ditch_width) if ditch_width is not None else Decimal(999)
@@ -204,6 +205,14 @@ class HydroObject(object):
                 [s['max_width_m'] for s in self.slope_table] + [s['max_width_m'] for s in self.over_depth_table]),
             key=sorter_none_last)
 
+
+        self.gradient_norm_inlaat = None
+        self.gradient_norm = None
+        self.set_grondsoort(self.grondsoort)
+
+    def set_grondsoort(self, grondsoort):
+
+        self.grondsoort = grondsoort
         if self.grondsoort in self.gradient_norm_table:
             self.gradient_norm = self.gradient_norm_table[self.grondsoort]
         else:
@@ -241,6 +250,10 @@ class HydroObject(object):
     def water_width_from_bottom_width(bottom_width, slope, depth):
         return Decimal(bottom_width + Decimal(2) * slope * depth)
 
+    @staticmethod
+    def bottom_width_from_water_width(water_width, slope, depth):
+        return Decimal(water_width - Decimal(2) * slope * depth)
+
     def get_profile_size_from_bottom_width_and_hydraulic_depth(self, hydraulic_depth, bottom_width):
         slope = None
         over_depth = None
@@ -260,6 +273,26 @@ class HydroObject(object):
             'over_depth': Decimal(over_depth),
             'bottom_width': Decimal(bottom_width),
             'hydraulic_bottom_width': self.bottom_width_from_water_width(water_width, slope, hydraulic_depth),
+        }
+
+    def get_profile_and_gradient_from_water_width_and_legger_depth(self, legger_depth, water_width, slope=None):
+        legger_depth = Decimal(legger_depth)
+        water_width = Decimal(water_width)
+
+        if slope is None:
+            slope = self.get_slope(water_width)
+        over_depth = self.get_over_depth(water_width)
+        hydraulic_depth = legger_depth - over_depth
+        bottom_width = self.bottom_width_from_water_width(water_width, slope, legger_depth)
+        hydraulic_bottom_width = self.bottom_width_from_water_width(water_width, slope, hydraulic_depth)
+
+        return {
+            'slope': slope,
+            'over_depth': over_depth,
+            'bottom_width': bottom_width,
+            'hydraulic_depth': hydraulic_depth,
+            'hydraulic_bottom_width': hydraulic_bottom_width,
+            'hydraulic_depth_inlet': hydraulic_depth - self.zpeil_diff,
         }
 
     def get_minimum_profile(self, hydraulic_depth):
@@ -336,12 +369,12 @@ def create_variants(legger_db_filepath):
 
     # Step 1: Read the database
     cursor.execute("""
-        Select ho.id, km.diepte, (ho.zomerpeil - ho.streefpeil) as zpeil_diff, km.breedte, 
+        Select ho.id, ho.code, km.diepte, (ho.zomerpeil - ho.streefpeil) as zpeil_diff, km.breedte, 
         ho.categorieoppwaterlichaam, km.taludvoorkeur, km.grondsoort, 
         ST_LENGTH(ST_TRANSFORM(ho.geometry, 28992)) as length, ho.debiet, ho.debiet_inlaat 
         from hydroobject ho 
         left outer join kenmerken km on ho.id = km.hydro_id 
-        where km.soort_vak is NULL
+        where km.soort_vak is NULL and ho.code = 'OAF-Q-115320'
         """)
 
     hydro_objects = []

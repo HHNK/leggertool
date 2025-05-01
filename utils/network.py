@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-from collections import OrderedDict
 from qgis._core import QgsFeature, QgsGeometry, QgsPointXY
 from typing import List
 
@@ -1051,11 +1050,6 @@ class Network(object):
             inflow_node = line.inflow_node(Definitions.DEBIET_DB)
             outflow_node = line.outflow_node(Definitions.DEBIET_DB)
 
-            if int(line_feature.id()) == 109386:
-                a = 1
-            if line.nr == 957:
-                a = 1
-
             line_tree[line.nr] = hydrovak_class(
                 data_dict={
                     # basic information
@@ -1232,7 +1226,7 @@ class Network(object):
         return line_tree, start_lines
 
     def get_tree_data(self, root_node, category=4):
-        # todo: move part outside of this class?
+        """get tree data for root_node, with filter on category"""
         # called when startpoint has been selected
         # get layers and make them empty
         if self.start_arc_tree is None:
