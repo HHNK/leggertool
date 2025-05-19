@@ -228,7 +228,7 @@ class LeggerTreeWidget(QTreeView):
         self.header().setSectionsClickable(True)
 
     def on_header_click(self, column):
-        a = 1
+
         if column == 0:
             if self.model().allCollapsed:
                 self.collapseAll()
@@ -264,6 +264,9 @@ class LeggerTreeWidget(QTreeView):
 
         if index.column() == 0:
             item = self.model().data(index, Qt.UserRole)
+            if item.hydrovak.get('soort_vak') in [3, 4]:
+                return
+
             if item.hydrovak.get('selected'):
                 # deselect
                 self.model().setDataItemKey(item, 'selected', Qt.Unchecked)

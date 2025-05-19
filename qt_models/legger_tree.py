@@ -47,7 +47,7 @@ HORIZONTAL_HEADERS = (
     {'field': 'selected', 'field_type': CHECKBOX_FIELD, 'show': False, 'single_selection': True,
      'default': False},
     {'field': 'hover', 'field_type': CHECKBOX_FIELD, 'show': False, 'column_width': 50, 'default': Qt.Unchecked},
-    {'field': 'soort_vak', 'header': 'soortvak', 'show': False, 'column_width': 50},
+    {'field': 'soort_vak', 'header': 'soortvak', 'show': True, 'column_width': 50},
     {'field': 'distance', 'header': 'afstand', 'show': False, 'column_width': 50},
     {'field': 'length', 'header': 'Lengte', 'round': 0, 'show': True, 'column_width': 50},
     {'field': 'category', 'header': 'cat', 'header_tooltip': 'categorie waterlichaam', 'column_width': 30},

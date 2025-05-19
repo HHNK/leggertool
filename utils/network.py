@@ -487,9 +487,10 @@ class Network(object):
 
             nodes = [Node(nr=nr, oid=r[0], point=(r[1], r[2])) for nr, r in enumerate(self.db_cursor.fetchall())]
 
+            # pseudovak length is 0
             self.db_cursor.execute("""
                 SELECT gl.hydro_id as hydro_id, gl.startnode_id, gl.endnode_id, ho.categorieoppwaterlichaam, 
-                ST_LENGTH(ho.geometry), ho.debiet_3di, ho.debiet, ho.streefpeil, kn.soort_vak, 
+                CASE WHEN kn.soort_vak = 4 THEN 0 ELSE ST_LENGTH(ho.geometry) END, ho.debiet_3di, ho.debiet, ho.streefpeil, kn.soort_vak, 
                 ho.duiker_count, v.verhang, ho.eindpunt_geselecteerd
                 FROM 
                     graph_lines gl
@@ -1298,6 +1299,8 @@ class Network(object):
                     continue
                 elif upstream_hydrovak['min_category_in_path'] > category:
                     continue
+
+                # todo: filter out pseudovakken
 
                 upstream_hydrovak.update({
                     'new_depth': get_stat(upstream_hydrovak['depth'], hydrovak['new_depth'], min),
