@@ -374,7 +374,7 @@ def create_variants(legger_db_filepath):
         ST_LENGTH(ST_TRANSFORM(ho.geometry, 28992)) as length, ho.debiet, ho.debiet_inlaat 
         from hydroobject ho 
         left outer join kenmerken km on ho.id = km.hydro_id 
-        where km.soort_vak is NULL and ho.code = 'OAF-Q-115320'
+        where km.soort_vak is NULL
         """)
 
     hydro_objects = []

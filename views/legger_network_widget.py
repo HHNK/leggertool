@@ -1056,6 +1056,23 @@ class LeggerWidget(QDockWidget):
             if prof_verhang is None or (profile.verhang_inlaat is not None and prof_verhang < profile.verhang_inlaat):
                 prof_verhang = profile.verhang_inlaat
 
+            if profile.standaard_profiel_code:
+                bv_value = profile.standaard_profiel_code
+                bv_color = [150, 150, 150]
+            elif profile.id.startswith('m_'):
+                bv_value = f"{profile.begroeiingsvariant.naam} (hand)"
+                bv_color = [150, 255, 150]
+            else:
+                bv_value = profile.begroeiingsvariant.naam
+                bv_color = [255, 255, 255]
+
+            if over_width is None:
+                over_width_color = [100, 100, 100]
+            elif over_width < 0:
+                over_width_color = [255, 0, 0]
+            else:
+                over_width_color = [255, 255, 255]
+
             profs.append({
                 'is_standaard': True if profile.standaard_profiel_code else False,
                 'name': profile.id,
@@ -1063,14 +1080,12 @@ class LeggerWidget(QDockWidget):
                 'depth': profile.diepte,
                 'hydrau_depth': profile.diepte if profile.hydraulische_diepte is None else profile.hydraulische_diepte,
                 'width': profile.waterbreedte,
-                'begroeiingsvariant': profile.standaard_profiel_code if profile.standaard_profiel_code else profile.begroeiingsvariant.naam,
-                'begroeiingsvariant_color': [150, 150, 150] if profile.standaard_profiel_code else [255, 255, 255],
+                'begroeiingsvariant': bv_value,
+                'begroeiingsvariant_color': bv_color,
                 'score': profile.figuren[0].t_fit if profile.figuren else None,
                 'over_depth': over_depth if over_depth is not None else None,
                 'over_width': over_width if over_depth is not None else None,
-                'over_width_color': [100, 100, 100] if over_width is None else [255, 0, 0] if over_width < 0 else [255,
-                                                                                                                   255,
-                                                                                                                   255],
+                'over_width_color': over_width_color,
                 'verhang': profile.verhang,
                 'color': interpolated_color(value=prof_verhang, color_map=color_map,
                                             alpha=(255 if active else 80)),
