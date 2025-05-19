@@ -140,7 +140,8 @@ def create_legger_views(session: sqlite3.Connection):
             SELECT 
                 h.id, 
                 h.code, 
-                h.categorieoppwaterlichaam, 
+                h.categorieoppwaterlichaam,
+                k.soort_vak,
                 h.streefpeil, 
                 h.zomerpeil,
                 h.debiet,
