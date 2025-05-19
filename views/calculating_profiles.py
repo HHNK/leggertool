@@ -216,7 +216,7 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
     def export_to_gdb(self):
         from legger.utils.export_to_demo_gpkg import export_sqlite_view_to_geopackage
         export_sqlite_view_to_geopackage(self.polder_datasource, self)
-        self.feedbacktext.setText("Nog niet geïmplementeerd")
+        self.feedbacktext.setText("Export gelukt.")
 
     def setup_ui(self):
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
