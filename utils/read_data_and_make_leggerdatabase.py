@@ -70,7 +70,7 @@ class CreateLeggerSpatialite(object):
 
         self.tables = ['DuikerSifonHevel', 'Waterdeel', 'HydroObject',
                        'GW_PRO', 'GW_PRW', 'GW_PBP', 'IWS_GEO_BESCHR_PROFIELPUNTEN', 'Debieten_3Di_HR',
-                       'Peilgebieden_na_datacheck']
+                       'Peilen']
         # tabellen oude methode peilgebieden: 'PeilafwijkingGebied', 'PeilgebiedPraktijk',
 
         self.db = LeggerDatabase(self.database_path)
@@ -217,6 +217,13 @@ class CreateLeggerSpatialite(object):
         INSERT INTO waterdeel  (id, shape_length, shape_area, geometry)
         SELECT ogc_fid as id, shape_length, shape_area, geometry
         FROM imp_waterdeel
+        """))
+
+        # vullen peilen =
+        session.execute(text("""
+        INSERT INTO peilen  (id, CODE, PEIL_WSA, Winterpeil, Zomerpeil, NAAM, Type, geometry)
+        SELECT id, CODE, PEIL_WSA, Winterpeil, Zomerpeil, NAAM, Type, geometry
+        FROM imp_peilen
         """))
 
         # duikersifonhevel

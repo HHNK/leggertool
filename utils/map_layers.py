@@ -131,6 +131,7 @@ class LayerManager():
             ]),
             ('achtergrond', [
                 LayerDefinition('watervlakken', 'waterdeel', '', 'waterdeel', 'geometry', None, False),
+                LayerDefinition('Peilen', 'peilen', '', 'peilen', 'geometry', None, False),
             ])
         ])
 
