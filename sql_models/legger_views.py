@@ -185,6 +185,41 @@ def create_legger_views(session: sqlite3.Connection):
          SELECT RecoverGeometryColumn( 'hydroobjects_selected_legger' , 'geometry' , 28992 , 'LineString' );      
         """)
 
+    create_legger_view_export_damo(session)
+
+
+
+def create_legger_view_export_damo(session: sqlite3.Connection):
+    session.executescript("""
+    DROP VIEW IF EXISTS hydroobj_sel_export_damo;
+    CREATE VIEW hydroobj_sel_export_damo AS 
+    WITH
+        begr_variant_to_nr AS (
+          SELECT 1 AS id, 25 AS nr
+          UNION ALL
+          SELECT 2 AS id, 50 AS nr
+          UNION ALL
+          SELECT 3 AS id, 100 AS nr) 
+    SELECT
+        code as CODE,
+        CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
+         CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
+         CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
+         CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
+         CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS diepte,
+         CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        geselecteerd_talud AS WS_TALUD_LINKS,
+        geselecteerd_talud AS WS_TALUD_RECHTS,
+        geometry
+    FROM
+        hydroobjects_selected_legger hsel_leg
+    INNER JOIN begr_variant_to_nr ON begr_variant_to_nr.id = hsel_leg.geselecteerde_begroeiingsvariant
+    """)
+
+    session.commit()
+
+
+
     # session.execute(
     #     """
     #         INSERT INTO views_geometry_columns (view_name, view_geometry, view_rowid, f_table_name,
