@@ -196,6 +196,9 @@ class LeggerPlotWidget(pg.PlotWidget):
             item = self.legger_model.data(index, role=Qt.UserRole)
 
             if item.hydrovak.get('hover'):
+                if item.hydrovak.get('soort_vak') in [3, 4]:
+                    # skip pseudovakken
+                    return
 
                 # add measured profiles
                 self.reference_level = item.hydrovak.get('target_level', 0.0)

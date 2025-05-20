@@ -66,6 +66,7 @@ class AutomaticFillLegger(object):
             FROM 
                 hydroobject ho 
             INNER JOIN kenmerken k ON k.hydro_id = ho.id
+            WHERE k.soort_vak is NULL
         """)
         hydroobjects = [
             dict(
