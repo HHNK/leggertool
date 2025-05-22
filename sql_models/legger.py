@@ -56,7 +56,7 @@ class Waterdeel(Base):
     shape_area = Column(Float)
     geometry = Column(
         "GEOMETRY",
-        Geometry(geometry_type='MULTIPOLYGON', srid=28992, spatial_index=True, management=True)
+        Geometry(geometry_type='MULTIPOLYGON', srid=28992, spatial_index=True)
     )
 
     def __str__(self):
@@ -86,7 +86,7 @@ class HydroObject(Base):
     id = Column(Integer, primary_key=True, index=True)
     geometry = Column(
         "GEOMETRY",
-        Geometry(geometry_type='MULTILINESTRING', srid=28992, spatial_index=True, management=True)
+        Geometry(geometry_type='MULTILINESTRING', srid=28992, spatial_index=True)
     )
     code = Column(String(50), index=True)
     categorieoppwaterlichaam = Column(Integer)
@@ -198,7 +198,7 @@ class Profielpunten(Base):
                         index=True)
     geometry = Column(
         "GEOMETRY",
-        Geometry(geometry_type='POINT', srid=28992, spatial_index=True, management=True)
+        Geometry(geometry_type='POINT', srid=28992, spatial_index=True)
     )
 
     profiel = relationship(
@@ -375,7 +375,7 @@ class DuikerSifonHevel(Base):
     id = Column(Integer, primary_key=True, index=True)
     geometry = Column(
         "GEOMETRY",
-        Geometry(geometry_type='MULTILINESTRING', srid=28992, spatial_index=True, management=True)
+        Geometry(geometry_type='MULTILINESTRING', srid=28992, spatial_index=True)
     )
     code = Column(String(50), index=True)
     categorie = Column(Integer)

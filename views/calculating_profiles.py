@@ -15,6 +15,8 @@ from legger.utils.redirect_flows_to_main_branches import redirect_flows
 from legger.utils.snap_points import snap_points
 from legger.utils.theoretical_profiles import create_variants
 
+# tmp for testing
+
 # -*- coding: utf-8 -*-
 
 log = logging.getLogger(__name__)
@@ -210,6 +212,9 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         calc_gradient(self.polder_datasource)
         self.feedbacktext.setText("Totaal gradient berekend")
 
+    def export_to_gdb(self):
+        self.feedbacktext.setText("Nog niet geïmplementeerd")
+
     def setup_ui(self):
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -319,6 +324,15 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.box_run_post_process.addWidget(self.run_post_process_button)
         self.groupBox_post_process.setLayout(self.box_run_post_process)  # box toevoegen aan groupbox
 
+        # export button
+        self.run_export_button = QtWidgets.QPushButton(self)
+        self.run_export_button.clicked.connect(self.export_to_gdb)
+        self.groupBox_export = QtWidgets.QGroupBox(self)
+        self.groupBox_export.setTitle("Export legger")
+        self.box_run_export = QtWidgets.QHBoxLayout()
+        self.box_run_export.addWidget(self.run_export_button)
+        self.groupBox_export.setLayout(self.box_run_export)
+
         # Assembling feedback row
         self.feedbacktext = QtWidgets.QTextEdit(self)
         self.feedbackmessage = "Nog geen berekening uitgevoerd"
@@ -346,6 +360,7 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.verticalLayout.addLayout(self.bottom_row)
         self.verticalLayout.addWidget(self.groupBox_run_all)
         self.verticalLayout.addWidget(self.groupBox_post_process)
+        self.verticalLayout.addWidget(self.groupBox_export)
         # self.verticalLayout.addWidget(self.groupBox_step3diold)
         self.verticalLayout.addLayout(self.feedback_row)
         self.verticalLayout.addLayout(self.exit_row)
@@ -366,5 +381,5 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.pre_fill_button.setText("Standaard profielen toevoegen en invullen waar mogelijk")
         self.run_all_button.setText("Run alle taken achter elkaar")
         self.run_post_process_button.setText("Opstuwing op basis van gekozen legger")
-
+        self.run_export_button.setText("Export naar GDB")
         self.cancel_button.setText("Cancel")
