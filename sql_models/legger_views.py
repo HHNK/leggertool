@@ -203,14 +203,23 @@ def create_legger_view_export_damo(session: sqlite3.Connection):
           SELECT 3 AS id, 100 AS nr) 
     SELECT
         code as CODE,
-        CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
-         CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
-         CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
-         CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
-         CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS diepte,
-         CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        categorieoppwaterlichaam AS CATEGORIE,
+        grondsoort,
+        CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
+        CAST(round(zomerpeil, 2)  AS DOUBLE) AS zomerpeil,
+        CAST(round(breedte, 2)  AS DOUBLE) AS waterbreedte_BGT,
+        CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
+        CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
+        CAST(round(geselecteerde_breedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
+        CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS geselecteerde_diepte,
+        CAST(round(geselecteerde_breedte + 2 * (geselecteerde_diepte * geselecteerd_talud) , 2)  AS DOUBLE) AS geselecteerde_waterbreedte,
         geselecteerd_talud AS WS_TALUD_LINKS,
         geselecteerd_talud AS WS_TALUD_RECHTS,
+        CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
+        CAST(round(geselecteerd_verhang, 2)  AS DOUBLE) AS afvoerverhang,
+        CAST(round(geselecteerd_verhang, 2)  AS DOUBLE) AS inlaatverhang,
+        CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        NULL AS WS_DIEPTE_DROGE_BEDDING
         geometry
     FROM
         hydroobjects_selected_legger hsel_leg

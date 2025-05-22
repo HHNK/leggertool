@@ -81,18 +81,28 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
     options.writeBBox = False
 
     # 6d stel in welk type de velden worden
-    double_fieds = ["WS_MAX_BEGROEIING",
+    double_fieds = [ 
+                    "streefpeil",
+                    "zomerpeil",
+                    "waterbreedte_BGT",
                     "WS_AANVOERDEBIET",
                     "WS_AFVOERDEBIET",
-                    "streefpeil",
-                    "diepte",
-                    "WS_BODEMHOOGTE",
+                    "WS_BODEMBREEDTE",
+                    "geselecteerde_diepte",
+                    "waterbreedte gekozen leggerprofiel",
                     "WS_TALUD_LINKS",
                     "WS_TALUD_RECHTS",
+                    "WS_MAX_BEGROEIING",
+                    "inlaatverhang",
+                    "afvoerverhang",
+                    "WS_BODEMHOOGTE",
+                    "WS_DIEPTE_DROGE_BEDDING",
                     ]
     # 1. Define your desired fields and types
     fields = QgsFields()
     fields.append(QgsField("CODE", QVariant.String))
+    fields.append(QgsField("CATEGORIE", QVariant.Int))
+    fields.append(QgsField("grondsoort", QVariant.String))
     for field in double_fieds:
         fields.append(QgsField(field, QVariant.Double))
     
