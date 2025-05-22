@@ -105,6 +105,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
     fields.append(QgsField("grondsoort", QVariant.String))
     for field in double_fieds:
         fields.append(QgsField(field, QVariant.Double))
+    fields.append(QgsField("opmerkingen", QVariant.String))
     
 
     # 2. Create a memory layer with these fields
