@@ -22,6 +22,7 @@ from legger.utils.theoretical_profiles import create_variants
 log = logging.getLogger(__name__)
 
 
+
 class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
     """Dialog for making the pre-process steps for the Legger"""
     closingDialog = pyqtSignal()
@@ -213,7 +214,9 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.feedbacktext.setText("Totaal gradient berekend")
 
     def export_to_gdb(self):
-        self.feedbacktext.setText("Nog niet geïmplementeerd")
+        from legger.utils.export_to_demo_gpkg import export_sqlite_view_to_geopackage
+        export_sqlite_view_to_geopackage(self.polder_datasource, self)
+        self.feedbacktext.setText("Export gelukt.")
 
     def setup_ui(self):
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
@@ -381,5 +384,6 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.pre_fill_button.setText("Standaard profielen toevoegen en invullen waar mogelijk")
         self.run_all_button.setText("Run alle taken achter elkaar")
         self.run_post_process_button.setText("Opstuwing op basis van gekozen legger")
-        self.run_export_button.setText("Export naar GDB")
+        self.run_export_button.setText("Export voor DAMO")
+
         self.cancel_button.setText("Cancel")
