@@ -221,7 +221,7 @@ class CreateLeggerSpatialite(object):
 
         # vullen peilen =
         session.execute(text("""
-        INSERT INTO peilen  (id, CODE, PEIL_WSA, Winterpeil, Zomerpeil, NAAM, Type, geometry)
+        INSERT INTO peilen  (CODE, PEIL_WSA, Winterpeil, Zomerpeil, NAAM, Type, geometry)
         SELECT id, CODE, PEIL_WSA, Winterpeil, Zomerpeil, NAAM, Type, geometry
         FROM imp_peilen
         """))
