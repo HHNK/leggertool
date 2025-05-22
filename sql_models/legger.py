@@ -46,8 +46,8 @@ class BegroeiingsVariant(Base):
         return u'begroeiingsvariant {0}'.format(
             self.naam)
 
-class Peilen(base):
-    __tablename__ = 'Peilen'
+class peilen(Base):
+    __tablename__ = 'peilen'
     extend_existing = True
 
     id = Column(Integer, primary_key=True, index=True)
