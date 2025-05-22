@@ -385,4 +385,5 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.run_all_button.setText("Run alle taken achter elkaar")
         self.run_post_process_button.setText("Opstuwing op basis van gekozen legger")
         self.run_export_button.setText("Export voor DAMO")
+
         self.cancel_button.setText("Cancel")
