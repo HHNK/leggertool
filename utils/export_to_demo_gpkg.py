@@ -69,9 +69,9 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
     vlayer = QgsVectorLayer(uri.uri(), view_name, "spatialite")
 
     if not vlayer.isValid():
-        print(f"Fout bij het laden van de view '{view_name}'. Controleer de naam en de geometrie kolom.")
-        QgsMessageLog.logMessage(f"Fout bij het laden van de view '{view_name}'. Controleer de naam en de geometrie kolom.", "Export SQLite View", Qgis.Critical)
-        messagebar_message("Export SQLite View", f"Fout bij het laden van de view '{view_name}'. Controleer de naam en de geometrie kolom.",  2, 20)
+        print(f"Fout bij het laden van de view '{view_name}'. Controleer de view.")
+        QgsMessageLog.logMessage(f"Fout bij het laden van de view '{view_name}'. Controleer de view.", "Export SQLite View", Qgis.Critical)
+        messagebar_message("Export SQLite View", f"Fout bij het laden van de view '{view_name}'. Controleer de view.",  2, 20)
         return
 
     # 6. Stel de opties in voor het wegschrijven naar GeoPackage
@@ -89,7 +89,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
                     "WS_AFVOERDEBIET",
                     "WS_BODEMBREEDTE",
                     "geselecteerde_diepte",
-                    "waterbreedte gekozen leggerprofiel",
+                    "geselecteerde_waterbreedte",
                     "WS_TALUD_LINKS",
                     "WS_TALUD_RECHTS",
                     "WS_MAX_BEGROEIING",
@@ -118,8 +118,11 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
         new_feat = QgsFeature(fields)
         # Map attributes here, e.g.:
         new_feat.setAttribute("CODE", feat["CODE"])
+        new_feat.setAttribute("CATEGORIE", feat["CATEGORIE"])
+        new_feat.setAttribute("grondsoort", feat["grondsoort"])
         for field in double_fieds:
             new_feat.setAttribute(field, feat[field])
+        new_feat.setAttribute("opmerkingen", feat["opmerkingen"])
         new_feat.setGeometry(feat.geometry())
         mem_layer.dataProvider().addFeature(new_feat)
 
