@@ -169,6 +169,7 @@ def create_legger_views(session: sqlite3.Connection):
                 v.hydraulische_waterbreedte as geselecteerd_hydraulische_waterbreedte,
                 v.hydraulische_bodembreedte as geselecteerde_hydraulische_bodembreedte,
                 v.verhang as verhang,
+                v.verhang_inlaat as verhang_inlaat,
                 v.opmerkingen as profiel_opmerking,
                 v.begroeiingsvariant_id as geselecteerde_begroeiingsvariant,
                 p.t_fit as fit_score,
@@ -203,14 +204,24 @@ def create_legger_view_export_damo(session: sqlite3.Connection):
           SELECT 3 AS id, 100 AS nr) 
     SELECT
         code as CODE,
-        CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
-         CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
-         CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
-         CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
-         CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS diepte,
-         CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        categorieoppwaterlichaam AS CATEGORIE,
+        grondsoort,
+        CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
+        CAST(round(zomerpeil, 2)  AS DOUBLE) AS zomerpeil,
+        CAST(round(breedte, 2)  AS DOUBLE) AS waterbreedte_BGT,
+        CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
+        CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
+        CAST(round(geselecteerde_bodembreedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
+        CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS geselecteerde_diepte,
+        CAST(round(geselecteerd_waterbreedte , 2)  AS DOUBLE) AS geselecteerde_waterbreedte,
         geselecteerd_talud AS WS_TALUD_LINKS,
         geselecteerd_talud AS WS_TALUD_RECHTS,
+        CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
+        CAST(round(verhang, 2)  AS DOUBLE) AS afvoerverhang,
+        CAST(round(verhang_inlaat, 2)  AS DOUBLE) AS inlaatverhang,
+        CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        NULL AS WS_DIEPTE_DROGE_BEDDING,
+        opmerkingen,               
         geometry
     FROM
         hydroobjects_selected_legger hsel_leg
