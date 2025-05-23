@@ -520,8 +520,9 @@ class LeggerWidget(QDockWidget):
         did_select_depth = False
         if initial and variant_id is None:
             pass
-        elif node.hydrovak['variant_min_depth'] is None:
+        elif node.hydrovak['variant_min_depth'] is None or node.hydrovak.get('soort_vak') in [3, 4]:
             # no variants available, so skip this one and continue downstream
+            # pseudovak or structure, continue downstream
             pass
         else:
             # get selected variant. if variant_id is None, try based on depth and begroeiingsvariant

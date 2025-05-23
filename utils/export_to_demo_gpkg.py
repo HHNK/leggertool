@@ -1,8 +1,10 @@
 import os
+
 from qgis._core import Qgis, QgsVectorLayer, QgsDataSourceUri, QgsProject, QgsFields, QgsField, QgsWkbTypes, QgsFeature
 from qgis.core import QgsVectorFileWriter, QgsMessageLog
 
 from PyQt5.QtCore import QSettings, QVariant
+
 from PyQt5.QtWidgets import QFileDialog
 
 if __name__ == "__main__":
@@ -116,6 +118,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
 
     # 7. Voer de export uit
     write_result, error_message, new_file, new_layer = QgsVectorFileWriter.writeAsVectorFormatV3(mem_layer, output_path, QgsProject.instance().transformContext(), options)
+
     print(f"output writeAsVectorFormatV3: {write_result} {error_message}")
     if write_result == QgsVectorFileWriter.NoError:
         QgsMessageLog.logMessage(f"View '{view_name}' succesvol geëxporteerd naar: {output_path}", "Export SQLite View", Qgis.Info)
