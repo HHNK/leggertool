@@ -1,8 +1,10 @@
 import os
-from qgis._core import Qgis, QgsVectorLayer, QgsDataSourceUri, QgsProject
+
+from qgis._core import Qgis, QgsVectorLayer, QgsDataSourceUri, QgsProject, QgsFields, QgsField, QgsWkbTypes, QgsFeature
 from qgis.core import QgsVectorFileWriter, QgsMessageLog
 
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSettings, QVariant
+
 from PyQt5.QtWidgets import QFileDialog
 
 if __name__ == "__main__":
@@ -80,8 +82,43 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
     options.crs = vlayer.crs() # Behoud het CRS van de virtuele laag
     options.writeBBox = False
 
+    # 6d stel in welk type de velden worden
+    double_fieds = ["WS_MAX_BEGROEIING",
+                    "WS_AANVOERDEBIET",
+                    "WS_AFVOERDEBIET",
+                    "streefpeil",
+                    "diepte",
+                    "WS_BODEMHOOGTE",
+                    "WS_TALUD_LINKS",
+                    "WS_TALUD_RECHTS",
+                    ]
+    # 1. Define your desired fields and types
+    fields = QgsFields()
+    fields.append(QgsField("CODE", QVariant.String))
+    for field in double_fieds:
+        fields.append(QgsField(field, QVariant.Double))
+    
+
+    # 2. Create a memory layer with these fields
+    mem_layer = QgsVectorLayer(f"{QgsWkbTypes.displayString(vlayer.wkbType())}?crs={vlayer.crs().authid()}", "temp", "memory")
+    mem_layer.dataProvider().addAttributes(fields)
+    mem_layer.updateFields()
+
+    # 3. Copy features from the original layer, mapping attributes as needed
+    for feat in vlayer.getFeatures():
+        new_feat = QgsFeature(fields)
+        # Map attributes here, e.g.:
+        new_feat.setAttribute("CODE", feat["CODE"])
+        for field in double_fieds:
+            new_feat.setAttribute(field, feat[field])
+        new_feat.setGeometry(feat.geometry())
+        mem_layer.dataProvider().addFeature(new_feat)
+
+    mem_layer.updateExtents()
+
     # 7. Voer de export uit
-    write_result, error_message, new_file, new_layer = QgsVectorFileWriter.writeAsVectorFormatV3(vlayer, output_path, QgsProject.instance().transformContext(), options)
+    write_result, error_message, new_file, new_layer = QgsVectorFileWriter.writeAsVectorFormatV3(mem_layer, output_path, QgsProject.instance().transformContext(), options)
+
     print(f"output writeAsVectorFormatV3: {write_result} {error_message}")
     if write_result == QgsVectorFileWriter.NoError:
         QgsMessageLog.logMessage(f"View '{view_name}' succesvol geëxporteerd naar: {output_path}", "Export SQLite View", Qgis.Info)
