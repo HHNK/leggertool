@@ -538,7 +538,7 @@ class NewWindow(QtWidgets.QWidget):
         self.gridLayout.addWidget(label, 11, 2, 1, 1)
 
         label = QtWidgets.QLabel(self)
-        label.setText("Leggeriepte:")
+        label.setText("Leggerdiepte:")
         self.output_waterdepth_hydraulic = QtWidgets.QLabel(self)
         self.output_waterdepth_hydraulic.setText('... m')
         self.output_waterdepth_hydraulic_inlet = QtWidgets.QLabel(self)
