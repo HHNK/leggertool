@@ -521,7 +521,7 @@ class NewWindow(QtWidgets.QWidget):
 
         # waterdiepte
         label = QtWidgets.QLabel(self)
-        label.setText("Waterdiepte")
+        label.setText("Onderhoudsdiepte")
         self.input_waterdepth = QtWidgets.QDoubleSpinBox(self)
         self.input_waterdepth.setSuffix(" m")
         self.input_waterdepth.setSingleStep(0.1)
@@ -538,7 +538,7 @@ class NewWindow(QtWidgets.QWidget):
         self.gridLayout.addWidget(label, 11, 2, 1, 1)
 
         label = QtWidgets.QLabel(self)
-        label.setText("Diepte:")
+        label.setText("Leggeriepte:")
         self.output_waterdepth_hydraulic = QtWidgets.QLabel(self)
         self.output_waterdepth_hydraulic.setText('... m')
         self.output_waterdepth_hydraulic_inlet = QtWidgets.QLabel(self)
