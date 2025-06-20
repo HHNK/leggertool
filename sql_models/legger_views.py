@@ -27,7 +27,7 @@ def create_legger_views(session: sqlite3.Connection):
                 max_diepte, 
                 min_breedte, 
                 max_breedte,
-                ST_LENGTH("GEOMETRY") as lengte,
+                CASE WHEN k.soort_vak = 4 THEN 0 ELSE ST_LENGTH("GEOMETRY") END as lengte,
                 geselecteerd_diepte,
                 geselecteerd_breedte,
                 geselecteerde_variant,
@@ -140,7 +140,8 @@ def create_legger_views(session: sqlite3.Connection):
             SELECT 
                 h.id, 
                 h.code, 
-                h.categorieoppwaterlichaam, 
+                h.categorieoppwaterlichaam,
+                k.soort_vak,
                 h.streefpeil, 
                 h.zomerpeil,
                 h.debiet,
@@ -155,7 +156,7 @@ def create_legger_views(session: sqlite3.Connection):
                 h.kijkp_talud,
                 h.kijkp_reden,
                 h.opmerkingen,
-                ST_LENGTH(h.geometry) as lengte,
+                CASE WHEN k.soort_vak = 4 THEN 0 ELSE ST_LENGTH(h.geometry) END as lengte,
                 h.geometry,
                 s.selected_on as geselecteerd_op,
                 s.tot_verhang as totaal_verhang,
@@ -168,6 +169,7 @@ def create_legger_views(session: sqlite3.Connection):
                 v.hydraulische_waterbreedte as geselecteerd_hydraulische_waterbreedte,
                 v.hydraulische_bodembreedte as geselecteerde_hydraulische_bodembreedte,
                 v.verhang as verhang,
+                v.verhang_inlaat as verhang_inlaat,
                 v.opmerkingen as profiel_opmerking,
                 v.begroeiingsvariant_id as geselecteerde_begroeiingsvariant,
                 p.t_fit as fit_score,
@@ -184,6 +186,51 @@ def create_legger_views(session: sqlite3.Connection):
          --DELETE FROM views_geometry_columns WHERE view_name = 'hydroobjects_selected_legger';
          SELECT RecoverGeometryColumn( 'hydroobjects_selected_legger' , 'geometry' , 28992 , 'LineString' );      
         """)
+
+    create_legger_view_export_damo(session)
+
+
+
+def create_legger_view_export_damo(session: sqlite3.Connection):
+    session.executescript("""
+    DROP VIEW IF EXISTS hydroobj_sel_export_damo;
+    CREATE VIEW hydroobj_sel_export_damo AS 
+    WITH
+        begr_variant_to_nr AS (
+          SELECT 1 AS id, 25 AS nr
+          UNION ALL
+          SELECT 2 AS id, 50 AS nr
+          UNION ALL
+          SELECT 3 AS id, 100 AS nr) 
+    SELECT
+        code as CODE,
+        categorieoppwaterlichaam AS CATEGORIE,
+        grondsoort,
+        CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
+        CAST(round(zomerpeil, 2)  AS DOUBLE) AS zomerpeil,
+        CAST(round(breedte, 2)  AS DOUBLE) AS waterbreedte_BGT,
+        CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
+        CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
+        CAST(round(geselecteerde_bodembreedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
+        CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS geselecteerde_diepte,
+        CAST(round(geselecteerd_waterbreedte , 2)  AS DOUBLE) AS geselecteerde_waterbreedte,
+        geselecteerd_talud AS WS_TALUD_LINKS,
+        geselecteerd_talud AS WS_TALUD_RECHTS,
+        CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
+        CAST(round(verhang, 2)  AS DOUBLE) AS afvoerverhang,
+        CAST(round(verhang_inlaat, 2)  AS DOUBLE) AS inlaatverhang,
+        CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        NULL AS WS_DIEPTE_DROGE_BEDDING,
+        opmerkingen,               
+        geometry
+    FROM
+        hydroobjects_selected_legger hsel_leg
+    INNER JOIN begr_variant_to_nr ON begr_variant_to_nr.id = hsel_leg.geselecteerde_begroeiingsvariant
+    """)
+
+    session.commit()
+
+
 
     # session.execute(
     #     """

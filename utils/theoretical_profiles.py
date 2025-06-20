@@ -171,7 +171,7 @@ class HydroObject(object):
             {'max_width_m': None, 'over_depth': Decimal(0.35)},
         ],
         'default': [
-            {'max_width_m': Decimal(2.0), 'over_depth': Decimal(0.15)},
+            {'max_width_m': Decimal(6.0), 'over_depth': Decimal(0.15)},
             {'max_width_m': None, 'over_depth': Decimal(0.20)},
         ]
     }
