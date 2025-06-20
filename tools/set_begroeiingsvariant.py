@@ -5,14 +5,11 @@
 import logging
 import os
 
-from qgis.PyQt.QtCore import Qt, QObject
-from qgis.utils import plugins
+from qgis.PyQt.QtCore import QObject
 from qgis.gui import QgsMessageBar
 from qgis.PyQt.QtWidgets import QAction, QMenu
-from qgis.PyQt.QtGui import QIcon
 
 from legger.utils.user_message import messagebar_message
-from legger.views.calculating_profiles import ProfileCalculationWidget
 from legger.sql_models.legger import BegroeiingsVariant
 from legger.sql_models.legger_database import LeggerDatabase
 
@@ -59,7 +56,6 @@ class SetBegroeiingsvariant(QObject):
             if polder_datasource:
                 self.remove_variant_items()
                 db = LeggerDatabase(polder_datasource)
-                db.create_and_check_fields()
                 self.session = db.get_session()
                 for variant in self.session.query(BegroeiingsVariant):
                     action = QAction(variant.naam, self.iface.mainWindow())

@@ -16,6 +16,8 @@ from legger.sql_models.legger_views import (
     create_legger_view_export_damo,
 )
 
+from legger.sql_models.legger_database import LeggerDatabase
+
 log = logging.getLogger(__name__)
 
 
@@ -131,6 +133,10 @@ class PolderSelectionWidget(QWidget):  # , FORM_CLASS):
 
             settings.setValue('last_used_legger_spatialite_path',
                               os.path.dirname(database))
+
+            db = LeggerDatabase(self.root_tool.polder_datasource)
+            log.warning("starting: create and check fields")
+            db.create_and_check_fields()
 
             con_legger = load_spatialite(self.root_tool.polder_datasource)
             create_legger_views(con_legger)

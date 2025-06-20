@@ -159,8 +159,6 @@ class LeggerWidget(QDockWidget):
         db = LeggerDatabase(
             path_legger_db
         )
-        log.warning('starting: create and check fields')
-        db.create_and_check_fields()
         log.warning('starting: get session')
         self.session = db.get_session()
         # todo: request something to test connection and through error message otherwise
