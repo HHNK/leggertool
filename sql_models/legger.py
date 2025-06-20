@@ -46,6 +46,24 @@ class BegroeiingsVariant(Base):
         return u'begroeiingsvariant {0}'.format(
             self.naam)
 
+class Peilen(Base):
+    __tablename__ = 'peilen'
+    extend_existing = True
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(20))
+    peil_wsa = Column(Float())
+    keuze_wsa = Column(String(50))
+    winterpeil = Column(Float())
+    zomerpeil = Column(Float())
+    geometry = Column(
+        "geometry",
+        Geometry(geometry_type='MULTIPOLYGON', srid=28992, spatial_index=True)
+    )
+
+    def __str__(self):
+        return u'Peilen {0}'.format(
+            self.id)
 
 class Waterdeel(Base):
     __tablename__ = 'waterdeel'
