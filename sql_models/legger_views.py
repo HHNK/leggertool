@@ -1,5 +1,7 @@
 import sqlite3
 
+from legger.utils.theoretical_profiles import calc_pitlo_griffioen
+
 
 def create_legger_views(session: sqlite3.Connection):
     session.executescript(
@@ -187,9 +189,6 @@ def create_legger_views(session: sqlite3.Connection):
          SELECT RecoverGeometryColumn( 'hydroobjects_selected_legger' , 'geometry' , 28992 , 'LineString' );      
         """)
 
-    create_legger_view_export_damo(session)
-
-
 
 def create_legger_view_export_damo(conn: sqlite3.Connection):
     conn.executescript("""
@@ -229,28 +228,87 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
     """)
     conn.commit()
 
-def update_handmatige_varianten_oude_versie(session: sqlite3.Connection):
-    session.executescript(
+
+def update_handmatige_varianten_oude_versie(conn: sqlite3.Connection):
+    conn.executescript(
         """
             UPDATE varianten 
             SET hydraulische_bodembreedte = sub.hydraulische_bodembreedte, 
                 hydraulische_waterbreedte = sub.waterbreedte,
                 verhang = NULL,
                 verhang_inlaat = NULL
-            FROM
-                (SELECT 
-                id,
-                waterbreedte - 2 * hydraulische_diepte * talud as hydraulische_bodembreedte,
-                waterbreedte
-
-
+            FROM (
+                SELECT 
+                    id,
+                    waterbreedte - 2 * hydraulische_diepte * talud as hydraulische_bodembreedte,
+                    waterbreedte
                 FROM varianten 
-                WHERE id LIKE 'm_%' AND hydraulische_bodembreedte = bodembreedte) sub
+                WHERE id LIKE 'm_%' AND hydraulische_bodembreedte = bodembreedte
+                ) sub
             WHERE varianten.id = sub.id
         """)
+    conn.commit()
 
-    session.commit()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
 
+    cursor.execute(
+        "Select  id, naam, friction_manning, friction_begroeiing, begroeiingsdeel "
+        "from begroeiingsvariant ORDER BY begroeiingsdeel"
+    )
+    begroeiingsvariants = {bv['id']: bv for bv in cursor.fetchall()}
+
+    cursor.execute(
+        "SELECT var.id, h.debiet, h.debiet_inlaat, var.hydraulische_talud, var.hydraulische_bodembreedte, "
+        "var.waterbreedte, var.hydraulische_diepte ,var.begroeiingsvariant_id "
+        "FROM varianten var "
+        "INNER JOIN hydroobject h ON h.id = var.hydro_id "
+        "WHERE var.id LIKE 'm_%' AND (var.verhang IS NULL OR var.verhang_inlaat IS NULL)"
+    )
+
+    for variant in cursor.fetchall():
+        # recalc verhang for all hydroobjects in verianten wherre verhang is null and verhang_inlaat is null
+        variant_id = variant['id']
+        debiet = variant['debiet']
+        debiet_inlaat = variant['debiet_inlaat']
+        hydraulische_talud = variant['hydraulische_talud']
+        hydraulische_bodembreedte = variant['hydraulische_bodembreedte']
+        hydraulische_diepte = variant['hydraulische_diepte']
+        begroeiingsvariant_id = variant['begroeiingsvariant_id']
+
+        friction_manning = begroeiingsvariants[begroeiingsvariant_id]['friction_manning']
+        friction_begroeiing = begroeiingsvariants[begroeiingsvariant_id]['friction_begroeiing']
+        begroeiingsdeel = begroeiingsvariants[begroeiingsvariant_id]['begroeiingsdeel']
+
+        verhang = calc_pitlo_griffioen(
+            flow=debiet,
+            ditch_bottom_width=hydraulische_bodembreedte,
+            water_depth=hydraulische_diepte,
+            slope=hydraulische_talud,
+            friction_manning= friction_manning,
+            friction_begroeiing=friction_begroeiing,
+            begroeiingsdeel=begroeiingsdeel
+        )
+        verhang_inlaat = calc_pitlo_griffioen(
+            flow=debiet_inlaat,
+            ditch_bottom_width=hydraulische_bodembreedte,
+            water_depth=hydraulische_diepte,
+            slope=hydraulische_talud,
+            friction_manning=friction_manning,
+            friction_begroeiing=friction_begroeiing,
+            begroeiingsdeel=begroeiingsdeel
+        )
+
+        cursor.execute(
+            """
+            UPDATE varianten 
+            SET verhang = ?, verhang_inlaat = ?
+            WHERE id = ?
+            """,
+            (verhang, verhang_inlaat, variant_id)
+        )
+
+    conn.commit()
 
 
     # session.execute(
@@ -363,5 +421,3 @@ def update_handmatige_varianten_oude_versie(session: sqlite3.Connection):
     #           f_geometry_column, read_only)
     #         VALUES('begroeiingsadvies', 'geometry', 'id', 'hydroobject', 'geometry', 1);
     #     """)
-
-    session.commit()

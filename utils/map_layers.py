@@ -3,11 +3,9 @@ import os.path
 from collections import OrderedDict
 import tempfile
 
-from qgis.core import (QgsDataSourceUri, QgsProject, QgsProject, QgsVectorLayer, QgsLayerTreeNode)
+from qgis.core import (QgsDataSourceUri, QgsProject, QgsVectorLayer)
 from collections import namedtuple
 
-from legger.sql_models.legger_views import create_legger_views
-from legger.utils.spatialite import load_spatialite
 
 log = logging.getLogger(__name__)
 
@@ -63,10 +61,6 @@ class LayerManager():
 
     def add_layers_to_map(self):
         # {layer_name: [(name, layer, field, style, geometry_field, range, is_view), ...], ... }
-
-        log.info('create views')
-        create_legger_views(load_spatialite(self.spatialite_path))
-        log.info('ready create views')
 
         styled_layers = OrderedDict([
             ('basisgegevens', [

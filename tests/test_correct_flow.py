@@ -4,7 +4,7 @@ import unittest
 from copy import deepcopy
 from random import shuffle
 
-from utils.network import Network, Node, Line, Graph
+from legger.utils.network import Network, Node, Line, Graph
 
 
 class TestRealNetwork(unittest.TestCase):

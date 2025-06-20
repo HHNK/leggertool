@@ -3,15 +3,18 @@ from __future__ import division
 
 import logging
 import os
-from sqlalchemy.sql import text
-from qgis.PyQt import QtCore, QtGui, QtWidgets
+from qgis.PyQt import QtCore, QtWidgets
 from qgis.PyQt.QtCore import QSettings, pyqtSignal
 from qgis.PyQt.QtWidgets import QFileDialog, QWidget
 from legger.sql_models.legger_views import create_legger_views
 from legger.utils.read_data_and_make_leggerdatabase import CreateLeggerSpatialite
 from legger.utils.user_message import messagebar_message
-import sqlite3
 from legger.sql_models.legger_database import load_spatialite
+
+from legger.sql_models.legger_views import (
+    update_handmatige_varianten_oude_versie,
+    create_legger_view_export_damo,
+)
 
 log = logging.getLogger(__name__)
 
@@ -128,6 +131,12 @@ class PolderSelectionWidget(QWidget):  # , FORM_CLASS):
 
             settings.setValue('last_used_legger_spatialite_path',
                               os.path.dirname(database))
+
+            con_legger = load_spatialite(self.root_tool.polder_datasource)
+            create_legger_views(con_legger)
+            create_legger_view_export_damo(con_legger)
+            update_handmatige_varianten_oude_versie(con_legger)
+
         return
 
     def create_spatialite_database(self):
@@ -182,6 +191,8 @@ class PolderSelectionWidget(QWidget):  # , FORM_CLASS):
         con_legger = load_spatialite(self.root_tool.polder_datasource)
 
         create_legger_views(con_legger)
+        create_legger_view_export_damo(con_legger)
+        # update_handmatige_varianten_oude_versie(con_legger)
 
         messagebar_message(
             'Aanmaken leggerdatabase',
