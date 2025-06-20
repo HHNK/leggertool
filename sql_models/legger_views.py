@@ -220,7 +220,7 @@ def create_legger_view_export_damo(session: sqlite3.Connection):
         CAST(round(verhang, 6)  AS DOUBLE) AS afvoerverhang,
         CAST(round(verhang_inlaat, 6)  AS DOUBLE) AS inlaatverhang,
         CAST(round(streefpeil - geselecteerde_diepte, 6)  AS DOUBLE) AS WS_BODEMHOOGTE,
-        NULL AS WS_DIEPTE_DROGE_BEDDING,
+        CAST(NULL AS DOUBLE) AS WS_DIEPTE_DROGE_BEDDING,
         opmerkingen,               
         geometry
     FROM
