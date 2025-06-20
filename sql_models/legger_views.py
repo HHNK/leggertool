@@ -228,6 +228,26 @@ def create_legger_view_export_damo(session: sqlite3.Connection):
     INNER JOIN begr_variant_to_nr ON begr_variant_to_nr.id = hsel_leg.geselecteerde_begroeiingsvariant
     """)
 
+def update_handmatige_varianten_oude_versie(session: sqlite3.Connection):
+    session.executescript(
+        """
+            UPDATE varianten 
+            SET hydraulische_bodembreedte = sub.hydraulische_bodembreedte, 
+                hydraulische_waterbreedte = sub.waterbreedte,
+                verhang = NULL,
+                verhang_inlaat = NULL
+            FROM
+                (SELECT 
+                id,
+                waterbreedte - 2 * hydraulische_diepte * talud as hydraulische_bodembreedte,
+                waterbreedte
+
+
+                FROM varianten 
+                WHERE id LIKE 'm_%' AND hydraulische_bodembreedte = bodembreedte) sub
+            WHERE varianten.id = sub.id
+        """)
+
     session.commit()
 
 
