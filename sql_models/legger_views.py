@@ -191,8 +191,8 @@ def create_legger_views(session: sqlite3.Connection):
 
 
 
-def create_legger_view_export_damo(session: sqlite3.Connection):
-    session.executescript("""
+def create_legger_view_export_damo(conn: sqlite3.Connection):
+    conn.executescript("""
     DROP VIEW IF EXISTS hydroobj_sel_export_damo;
     CREATE VIEW hydroobj_sel_export_damo AS 
     WITH
@@ -211,9 +211,9 @@ def create_legger_view_export_damo(session: sqlite3.Connection):
         CAST(round(breedte, 2)  AS DOUBLE) AS waterbreedte_BGT,
         CAST(round(debiet_inlaat, 6) AS DOUBLE) AS WS_AANVOERDEBIET,
         CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
-        CAST(round(geselecteerde_bodembreedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
-        CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS geselecteerde_diepte,
-        CAST(round(geselecteerd_waterbreedte , 2)  AS DOUBLE) AS geselecteerde_waterbreedte,
+        CAST(round(geselecteerde_hydraulische_bodembreedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
+        CAST(round(geselecteerde_hydraulische_diepte, 2)  AS DOUBLE) AS geselecteerde_hydraulische_diepte,
+        CAST(round(geselecteerd_hydraulische_waterbreedte , 2)  AS DOUBLE) AS geselecteerd_waterbreedte,
         geselecteerd_talud AS WS_TALUD_LINKS,
         geselecteerd_talud AS WS_TALUD_RECHTS,
         CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
@@ -227,6 +227,7 @@ def create_legger_view_export_damo(session: sqlite3.Connection):
         hydroobjects_selected_legger hsel_leg
     INNER JOIN begr_variant_to_nr ON begr_variant_to_nr.id = hsel_leg.geselecteerde_begroeiingsvariant
     """)
+    conn.commit()
 
 def update_handmatige_varianten_oude_versie(session: sqlite3.Connection):
     session.executescript(
