@@ -57,6 +57,14 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
     if not output_path.lower().endswith('.gpkg'):
         output_path += '.gpkg'
 
+    if os.path.exists(output_path):
+        # popup if sure
+        if QgsMessageLog.confirmWarning("Bestand bestaat al, bestaande vervangen?"):
+            os.remove(output_path)
+        else:
+            QgsMessageLog.logMessage("Export afgebroken.", Qgis.Warning)
+            return
+
     # 4. Stel de URI samen om de view in QGIS te laden als een vectorlaag
     uri = QgsDataSourceUri()
     uri.setDatabase(sqlite_path.replace('\\', '/'))
@@ -84,29 +92,29 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
 
     # 6d stel in welk type de velden worden
     double_fieds = [ 
-                    "streefpeil",
-                    "zomerpeil",
-                    "waterbreedte_BGT",
-                    "WS_AANVOERDEBIET",
-                    "WS_AFVOERDEBIET",
-                    "WS_BODEMBREEDTE",
-                    "geselecteerde_diepte",
-                    "geselecteerde_waterbreedte",
-                    "WS_TALUD_LINKS",
-                    "WS_TALUD_RECHTS",
-                    "WS_MAX_BEGROEIING",
-                    "inlaatverhang",
-                    "afvoerverhang",
-                    "WS_BODEMHOOGTE",
-                    "WS_DIEPTE_DROGE_BEDDING",
+                    ["streefpeil",                   6],
+                    ["zomerpeil",                    6],
+                    ["waterbreedte_BGT",             8],
+                    ["WS_AANVOERDEBIET",             8],
+                    ["WS_AFVOERDEBIET",              8],
+                    ["WS_BODEMBREEDTE",              6],
+                    ["geselecteerde_diepte",         6],
+                    ["geselecteerde_waterbreedte",   6],
+                    ["WS_TALUD_LINKS",               6],
+                    ["WS_TALUD_RECHTS",              6],
+                    ["inlaatverhang",                6],
+                    ["afvoerverhang",                6],
+                    ["WS_BODEMHOOGTE",               6],
+                    ["WS_DIEPTE_DROGE_BEDDING",      6],
                     ]
     # 1. Define your desired fields and types
     fields = QgsFields()
-    fields.append(QgsField("CODE", QVariant.String))
-    fields.append(QgsField("CATEGORIE", QVariant.Int))
+    fields.append(QgsField("CODE", QVariant.String,len=50))
+    fields.append(QgsField("CATEGORIE", QVariant.Int,len=3))
     fields.append(QgsField("grondsoort", QVariant.String))
     for field in double_fieds:
-        fields.append(QgsField(field, QVariant.Double))
+        fields.append(QgsField(field[0], QVariant.Double,prec=field[1]))
+    fields.append(QgsField("WS_MAX_BEGROEIING", QVariant.Int,len=5))
     fields.append(QgsField("opmerkingen", QVariant.String))
     
 
@@ -123,7 +131,8 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
         new_feat.setAttribute("CATEGORIE", feat["CATEGORIE"])
         new_feat.setAttribute("grondsoort", feat["grondsoort"])
         for field in double_fieds:
-            new_feat.setAttribute(field, feat[field])
+            new_feat.setAttribute(field[0], feat[field[0]])
+        new_feat.setAttribute("WS_MAX_BEGROEIING", feat["WS_MAX_BEGROEIING"])
         new_feat.setAttribute("opmerkingen", feat["opmerkingen"])
         new_feat.setGeometry(feat.geometry())
         mem_layer.dataProvider().addFeature(new_feat)
