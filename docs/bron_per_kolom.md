@@ -12,5 +12,7 @@ debiet =>
 debiet_opgelegd (handmatig gevulde kolom om alles te overrulen)
 max(debiet_aangepast, debiet_3di)
 
-
+Debiet fme nu betrouwbaarder. Deze wordt nu gebruikt voor debiet_3di. De oude
+methode wordt opgeslagen in debiet_score_matched en kan gebruikt worden voor
+correctie van debiet 3di.
 
