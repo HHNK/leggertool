@@ -1,14 +1,14 @@
 import logging
-import sys, os
+import sys
+import os
 
 try:
     from legger.sql_models.legger_database import load_spatialite
 except ImportError:
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
-from legger.sql_models.legger_database import load_spatialite, LeggerDatabase
+from legger.sql_models.legger_database import load_spatialite
 from legger.utils.network import Network
-from legger.sql_models.legger_views import create_legger_views
 from legger.utils.link_duikers_to_hydrovakken import link_duikers_to_hydrovakken
 
 log = logging.getLogger(__name__)
@@ -56,13 +56,9 @@ def calc_gradient_for_network(network: Network):
 
 def calc_gradient(path_legger_db):
     # step 1: get network
-    db = LeggerDatabase(path_legger_db)
-    db.create_and_check_fields()
-
     link_duikers_to_hydrovakken(path_legger_db)
 
     con_legger = load_spatialite(path_legger_db)
-    create_legger_views(con_legger)
 
     network = Network(path_legger_db)
 

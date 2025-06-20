@@ -16,7 +16,6 @@ from legger.qt_models.legger_tree import LeggerTreeItem, LeggerTreeModel
 from legger.qt_models.profile import ProfileModel
 from legger.sql_models.legger import (BegroeiingsVariant, GeselecteerdeProfielen, HydroObject, Varianten)
 from legger.sql_models.legger_database import LeggerDatabase, load_spatialite
-from legger.sql_models.legger_views import create_legger_views
 from legger.utils.formats import try_round
 from legger.utils.legger_map_manager import LeggerMapManager
 from legger.utils.network import Network
@@ -146,9 +145,6 @@ class LeggerWidget(QDockWidget):
 
         self._new_window = None
 
-        con_legger = load_spatialite(path_legger_db)
-        create_legger_views(con_legger)
-
         # init parameters
         self.measured_model = ProfileModel()
         self.variant_model = ProfileModel()
@@ -163,8 +159,6 @@ class LeggerWidget(QDockWidget):
         db = LeggerDatabase(
             path_legger_db
         )
-        log.warning('starting: create and check fields')
-        db.create_and_check_fields()
         log.warning('starting: get session')
         self.session = db.get_session()
         # todo: request something to test connection and through error message otherwise

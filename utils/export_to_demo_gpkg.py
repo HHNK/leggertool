@@ -16,7 +16,6 @@ if __name__ == "__main__":
     os.environ["GDAL_DATA"] = "/Applications/QGIS-LTR2.app/Contents/Resources/gdal"
 
 
-from legger.sql_models.legger_views import create_legger_view_export_damo
 from legger.utils.spatialite import load_spatialite
 from legger.utils.user_message import messagebar_message
 
@@ -30,7 +29,6 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
 
     # make sure (last version) of view exists
     session = load_spatialite(sqlite_path)
-    create_legger_view_export_damo(session)
 
     view_name = 'hydroobj_sel_export_damo'
 

@@ -1,7 +1,7 @@
 import unittest
 
 from legger.tests.utilities import get_qgis_app
-from utils.calc_gradient import calc_gradient_for_network
+from legger.utils.calc_gradient import calc_gradient_for_network
 
 QGIS_APP = get_qgis_app()
 
