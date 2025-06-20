@@ -70,7 +70,7 @@ class CreateLeggerSpatialite(object):
 
         self.tables = ['DuikerSifonHevel', 'Waterdeel', 'HydroObject',
                        'GW_PRO', 'GW_PRW', 'GW_PBP', 'IWS_GEO_BESCHR_PROFIELPUNTEN', 'Debieten_3Di_HR',
-                       'Peilgebieden_na_datacheck']
+                       'Peilen']
         # tabellen oude methode peilgebieden: 'PeilafwijkingGebied', 'PeilgebiedPraktijk',
 
         self.db = LeggerDatabase(self.database_path)
@@ -219,6 +219,13 @@ class CreateLeggerSpatialite(object):
         FROM imp_waterdeel
         """))
 
+        # vullen peilen =
+        session.execute(text("""
+        INSERT INTO peilen  (id, code, peil_wsa, winterpeil, zomerpeil, geometry)
+        SELECT ogc_fid as id, code, peil_wsa, winterpeil, zomerpeil, geometry
+        FROM imp_peilen
+        """))
+
         # duikersifonhevel
         session.execute(text("""
          INSERT INTO duikersifonhevel(
@@ -303,7 +310,7 @@ class CreateLeggerSpatialite(object):
 
                     UPDATE hydroobject
                     SET 
-                        debiet_3di = (
+                        debiet_score_matched = (
                             SELECT m.debiet_3di FROM matched m
                                 --, hydroobject -- FOR DEBUGGING
                                 WHERE m.hydro_id = id
@@ -314,8 +321,7 @@ class CreateLeggerSpatialite(object):
         session.execute(text("""
             UPDATE hydroobject
             SET debiet_3di = debiet_fme * richting_fme   
-            WHERE debiet_3di IS NULL
-                        """))
+            """))
 
         session.execute(text("""
             UPDATE hydroobject

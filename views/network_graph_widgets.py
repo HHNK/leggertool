@@ -196,6 +196,9 @@ class LeggerPlotWidget(pg.PlotWidget):
             item = self.legger_model.data(index, role=Qt.UserRole)
 
             if item.hydrovak.get('hover'):
+                if item.hydrovak.get('soort_vak') in [3, 4]:
+                    # skip pseudovakken
+                    return
 
                 # add measured profiles
                 self.reference_level = item.hydrovak.get('target_level', 0.0)
@@ -449,14 +452,24 @@ class LeggerSideViewPlotWidget(pg.PlotWidget):
         target_level = []
 
         for item in data.values():
+            # pseudovakken zijn er al uitgefilterd
+            # if item.get('soort_vak') == 4:
+            #     continue
+
             if self.relative_depth:
                 ref_level = 0
             else:
                 ref_level = item['target_level']
 
-            d = ref_level - item['depth'] if item['depth'] is not None else np.nan
-            mind = ref_level - item['variant_min_depth'] if item['variant_min_depth'] is not None else np.nan
-            maxd = ref_level - item['variant_max_depth'] if item['variant_max_depth'] is not None else np.nan
+            if item.get('soort_vak') == 3:
+                ref_level = ref_level - 0.2
+                d = ref_level
+                mind = np.nan
+                maxd = np.nan
+            else:
+                d = ref_level - item['depth'] if item['depth'] is not None else np.nan
+                mind = ref_level - item['variant_min_depth'] if item['variant_min_depth'] is not None else np.nan
+                maxd = ref_level - item['variant_max_depth'] if item['variant_max_depth'] is not None else np.nan
 
             dist.append(item['b_distance'])
             dist.append(item['e_distance'])
@@ -570,12 +583,17 @@ class LeggerSideViewPlotWidget(pg.PlotWidget):
             # skip extra 'tak' nodes
             if line.hydrovak.get('tak'):
                 continue
+            if line.hydrovak.get('soort_vak') == 4:  # pseudovak
+                continue
+
+
 
             out.append(
                 {
                     'id': line.hydrovak.get('hydro_id'),
                     'b_distance': line.hydrovak.get('distance') - dist,
                     'e_distance': line.hydrovak.get('distance') + line.hydrovak.get('length') - dist,
+                    'soort_vak': line.hydrovak.get('soort_vak'),
                     'depth': line.hydrovak.get('depth'),
                     'target_level': line.hydrovak.get('target_level'),
                     'variant_min_depth': line.hydrovak.get('variant_min_depth'),

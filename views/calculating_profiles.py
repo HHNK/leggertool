@@ -218,6 +218,7 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         export_sqlite_view_to_geopackage(self.polder_datasource, self)
         self.feedbacktext.setText("Export gelukt.")
 
+
     def setup_ui(self):
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setObjectName("verticalLayout")

@@ -2,7 +2,7 @@
     specific implementation of QgsTreeModel for hydrovakken, used for the hydrovakken tree.
     to change visible data in tree, modify the HORIZONTAL_HEADERS config
 """
-
+from PyQt5.QtGui import QFont
 from legger import settings
 from legger.utils.formats import transform_none
 from qgis.PyQt.QtCore import Qt
@@ -47,7 +47,7 @@ HORIZONTAL_HEADERS = (
     {'field': 'selected', 'field_type': CHECKBOX_FIELD, 'show': False, 'single_selection': True,
      'default': False},
     {'field': 'hover', 'field_type': CHECKBOX_FIELD, 'show': False, 'column_width': 50, 'default': Qt.Unchecked},
-    {'field': 'soort_vak', 'header': 'soortvak', 'show': False, 'column_width': 50},
+    {'field': 'soort_vak', 'header': 'soortvak', 'show': True, 'column_width': 50},
     {'field': 'distance', 'header': 'afstand', 'show': False, 'column_width': 50},
     {'field': 'length', 'header': 'Lengte', 'round': 0, 'show': True, 'column_width': 50},
     {'field': 'category', 'header': 'cat', 'header_tooltip': 'categorie waterlichaam', 'column_width': 30},
@@ -319,6 +319,20 @@ class LeggerTreeModel(BaseTreeModel):
                     return None
             elif self.headers[index.column()].get('field_type') != CHECKBOX_FIELD:
                 return item.data(index.column())
+        elif role == Qt.TextColorRole:
+            if item.hydrovak.get('soort_vak') == 4:
+                return QBrush(QColor(*settings.PSEUDOVAK_COLOR))
+        # elif role == Qt.TextFormat:
+        #     if item.hydrovak.get('soort_vak') == 4:
+        #         return Qt.RichText
+        elif role == Qt.FontRole:
+            if item.hydrovak.get('soort_vak') in [3, 4]:
+                # default font
+                font = QFont()
+                font.setItalic(True)
+                font.setPointSize(10)
+                return font
+
         elif role == Qt.BackgroundRole:
             if item.hydrovak.get('selected'):
                 return QBrush(QColor(*settings.SELECT_COLOR))
@@ -328,7 +342,7 @@ class LeggerTreeModel(BaseTreeModel):
             elif item.hydrovak.get('soort_vak') == 3:
                 return QBrush(QColor(*settings.KUNSTWERKVAK_COLOR))
             elif item.hydrovak.get('soort_vak') == 4:
-                return QBrush(QColor(*settings.PSEUDOVAK_COLOR))
+                return QBrush(Qt.transparent)
             elif item.hydrovak.get('selected_depth') is not None and try_float(
                     item.hydrovak.get('verhang')) is not None and item.hydrovak.get(
                 'verhang_inlaat') is not None and item.hydrovak.get('score') is not None:
