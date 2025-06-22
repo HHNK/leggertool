@@ -212,13 +212,13 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
         CAST(round(debiet, 6)  AS DOUBLE) AS WS_AFVOERDEBIET,
         CAST(round(geselecteerde_hydraulische_bodembreedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
         CAST(round(geselecteerde_hydraulische_diepte, 2)  AS DOUBLE) AS geselecteerde_hydraulische_diepte,
-        CAST(round(geselecteerd_hydraulische_waterbreedte , 2)  AS DOUBLE) AS geselecteerd_waterbreedte,
+        CAST(round(geselecteerd_hydraulische_waterbreedte , 2)  AS DOUBLE) AS geselecteerde_hydraulische_waterbreedte,
         geselecteerd_talud AS WS_TALUD_LINKS,
         geselecteerd_talud AS WS_TALUD_RECHTS,
         CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
         CAST(round(verhang, 2)  AS DOUBLE) AS afvoerverhang,
         CAST(round(verhang_inlaat, 2)  AS DOUBLE) AS inlaatverhang,
-        CAST(round(streefpeil - geselecteerde_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
+        CAST(round(streefpeil - geselecteerde_hydraulische_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
         CAST(NULL AS DOUBLE) AS WS_DIEPTE_DROGE_BEDDING,
         opmerkingen,               
         geometry
@@ -263,7 +263,7 @@ def update_handmatige_varianten_oude_versie(conn: sqlite3.Connection):
         "var.waterbreedte, var.hydraulische_diepte ,var.begroeiingsvariant_id "
         "FROM varianten var "
         "INNER JOIN hydroobject h ON h.id = var.hydro_id "
-        "WHERE var.id LIKE 'm_%' AND (var.verhang IS NULL OR var.verhang_inlaat IS NULL)"
+        "WHERE var.id LIKE 'm_%' AND (var.verhang IS NULL AND var.verhang_inlaat IS NULL)"
     )
 
     for variant in cursor.fetchall():
@@ -292,7 +292,7 @@ def update_handmatige_varianten_oude_versie(conn: sqlite3.Connection):
         verhang_inlaat = calc_pitlo_griffioen(
             flow=debiet_inlaat,
             ditch_bottom_width=hydraulische_bodembreedte,
-            water_depth=hydraulische_diepte,
+            water_depth=hydraulische_diepte, # FIXME houdt dit rekening met zomerpeil?
             slope=hydraulische_talud,
             friction_manning=friction_manning,
             friction_begroeiing=friction_begroeiing,
