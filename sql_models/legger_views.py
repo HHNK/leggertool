@@ -201,7 +201,7 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
           SELECT 2 AS id, 50 AS nr
           UNION ALL
           SELECT 3 AS id, 100 AS nr) 
-    SELECT
+    SELECT DISTINCT
         code as CODE,
         categorieoppwaterlichaam AS CATEGORIE,
         grondsoort,
