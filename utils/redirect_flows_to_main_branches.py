@@ -3,15 +3,14 @@ from qgis.core import Qgis
 
 try:
     from legger.utils.user_message import messagebar_message
-    from legger.sql_models.legger_views import create_legger_views
     from legger.utils.network import Network, load_spatialite
 except ImportError:
-    import sys, os
+    import sys
+    import os
 
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 
     from legger.utils.user_message import messagebar_message
-    from legger.sql_models.legger_views import create_legger_views
     from legger.utils.network import Network, load_spatialite
 
 log = logging.getLogger(__name__)
@@ -64,12 +63,9 @@ def redirect_flows(path_legger_db, change_flow_direction=True):
     log.info("Save redirecting flow result (update) to database ")
 
     con_legger = load_spatialite(path_legger_db)
-    create_legger_views(con_legger)
 
     #
     # con_legger = load_spatialite(path_legger_db)
-    #
-    # create_legger_views(con_legger)
     #
     # layer_manager = LeggerMapManager(iface, path_legger_db)
     #

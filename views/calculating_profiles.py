@@ -150,7 +150,6 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
     def execute_step2(self):
 
         db = LeggerDatabase(self.polder_datasource)
-        db.create_and_check_fields()
         # do one query, don't know what the reason was for this...
 
         self.feedbackmessage = ""
