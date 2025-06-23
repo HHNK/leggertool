@@ -102,6 +102,11 @@ class ProfileModel(ModifiedBaseModel):
                            round=2,
                            column_name='L-dpt',
                            column_tooltip='Legger diepte [m]')
+        talud = ValueField(show=True,
+                           column_width=45,
+                           round=2,
+                           column_name='tld',
+                           column_tooltip='Talud')
         width = ValueField(show=True,
                            column_width=45,
                            round=2,
