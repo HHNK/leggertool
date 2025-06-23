@@ -43,16 +43,20 @@ def create_and_upgrade(engine, metadata):
 
             for c in to_create:
                 model_column = getattr(model_table.c, c)
-                log.info('Adding column %s.%s' %
-                         (model_table.name, model_column.name))
-                assert not model_column.constraints, \
-                    'I cannot automatically add columns with constraints to ' \
-                    'the database. Please consider fixing me if you care!'
-                model_col_spec = ddl_c.get_column_specification(model_column)
-                sql = 'ALTER TABLE %s ADD %s' % (
-                    model_table.name, model_col_spec)
-                with engine.connect() as connection:
-                    connection.execute(text(sql))
+                try:
+                    log.info('Adding column %s.%s' %
+                            (model_table.name, model_column.name))
+                    assert not model_column.constraints, \
+                        'I cannot automatically add columns with constraints to ' \
+                        'the database. Please consider fixing me if you care!'
+                    model_col_spec = ddl_c.get_column_specification(model_column)
+                    sql = 'ALTER TABLE %s ADD %s' % (
+                        model_table.name, model_col_spec)
+                    with engine.connect() as connection:
+                        connection.execute(text(sql))
+                except:
+                    log.warning('Could not add column %s.%s' %
+                                 (model_table.name, model_column.name))
 
             # It's difficult to reliably determine if the model has changed
             # a column definition. E.g. the default precision of columns
