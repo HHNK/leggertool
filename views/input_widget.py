@@ -147,7 +147,7 @@ class LeggerPlotWidget(pg.PlotWidget):
         if self.inlet_offset > 0:
             self.inlet_plot.setData(
                 x=[- 0.5 * self.water_width,0.5 * self.water_width],
-                y=[-1 * self.inlet_offset, -1 * self.inlet_offset],
+                y=[self.inlet_offset, self.inlet_offset],
             )
         else:
             self.inlet_plot.setData(
@@ -377,17 +377,23 @@ class NewWindow(QtWidgets.QWidget):
             self.output_gradient.setStyleSheet("color: black; font-weight: normal;")
 
         if gradient_pitlo_griffioen_inlet is None:
-            if size.get('hydraulic_depth_inlet') < 0.05:
-                self.output_waterdepth_hydraulic_inlet.setStyleSheet("color: red; font-weight: normal;")
-                valid = False
-            else:
-                self.output_waterdepth_hydraulic_inlet.setStyleSheet("color: black; font-weight: normal;")
+            pass
         elif gradient_pitlo_griffioen_inlet > self.hydro.gradient_norm_inlaat:
             # color red
             self.output_inlet_gradient.setStyleSheet("color: red; font-weight: normal;")
         else:
             # default color
             self.output_inlet_gradient.setStyleSheet("color: black; font-weight: normal;")
+
+        if size.get("hydraulic_depth_inlet") < 0.05:
+            self.output_waterdepth_hydraulic_inlet.setStyleSheet(
+                "color: red; font-weight: normal;"
+            )
+            valid = False
+        else:
+            self.output_waterdepth_hydraulic_inlet.setStyleSheet(
+                "color: black; font-weight: normal;"
+            )
 
         # width of the ditch
         if size.get('bottom_width') < 0:
@@ -408,7 +414,7 @@ class NewWindow(QtWidgets.QWidget):
             bottom_width=size.get('bottom_width'),
             hydraulic_depth=size.get('hydraulic_depth'),
             hydraulic_bottom_width=size.get('hydraulic_bottom_width'),
-            inlet_offset=size.get('hydraulic_depth') - size.get('hydraulic_depth_inlet')
+            inlet_offset=size.get('hydraulic_depth_inlet') - size.get('hydraulic_depth')
         )
 
         return {
@@ -420,7 +426,7 @@ class NewWindow(QtWidgets.QWidget):
             'bottom_width': size.get('bottom_width'),
             'hydraulic_depth': size.get('hydraulic_depth'),
             'hydraulic_bottom_width': size.get('hydraulic_bottom_width'),
-            'inlet_offset': size.get('hydraulic_depth') - size.get('hydraulic_depth_inlet'),
+            'inlet_offset': size.get('hydraulic_depth_inlet') - size.get('hydraulic_depth'),
             'gradient': gradient_pitlo_griffioen,
             'gradient_inlet': gradient_pitlo_griffioen_inlet,
         }

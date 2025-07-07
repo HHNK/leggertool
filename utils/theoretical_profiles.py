@@ -292,7 +292,7 @@ class HydroObject(object):
             'bottom_width': bottom_width,
             'hydraulic_depth': hydraulic_depth,
             'hydraulic_bottom_width': hydraulic_bottom_width,
-            'hydraulic_depth_inlet': hydraulic_depth - self.zpeil_diff,
+            'hydraulic_depth_inlet': hydraulic_depth + self.zpeil_diff,
         }
 
     def get_minimum_profile(self, hydraulic_depth):

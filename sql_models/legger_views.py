@@ -259,7 +259,8 @@ def update_handmatige_varianten_oude_versie(conn: sqlite3.Connection):
     begroeiingsvariants = {bv['id']: bv for bv in cursor.fetchall()}
 
     cursor.execute(
-        "SELECT var.id, h.debiet, h.debiet_inlaat, var.hydraulische_talud, var.hydraulische_bodembreedte, "
+        "SELECT var.id, h.debiet, h.debiet_inlaat, COALESCE((h.zomerpeil - h.streefpeil), 0) as peil_diff_inlaat, "
+        "var.hydraulische_talud, var.hydraulische_bodembreedte, "
         "var.waterbreedte, var.hydraulische_diepte ,var.begroeiingsvariant_id "
         "FROM varianten var "
         "INNER JOIN hydroobject h ON h.id = var.hydro_id "
@@ -271,6 +272,7 @@ def update_handmatige_varianten_oude_versie(conn: sqlite3.Connection):
         variant_id = variant['id']
         debiet = variant['debiet']
         debiet_inlaat = variant['debiet_inlaat']
+        peil_diff_inlaat = variant['peil_diff_inlaat']
         hydraulische_talud = variant['hydraulische_talud']
         hydraulische_bodembreedte = variant['hydraulische_bodembreedte']
         hydraulische_diepte = variant['hydraulische_diepte']
@@ -292,7 +294,7 @@ def update_handmatige_varianten_oude_versie(conn: sqlite3.Connection):
         verhang_inlaat = calc_pitlo_griffioen(
             flow=debiet_inlaat,
             ditch_bottom_width=hydraulische_bodembreedte,
-            water_depth=hydraulische_diepte, # FIXME houdt dit rekening met zomerpeil?
+            water_depth=hydraulische_diepte + peil_diff_inlaat,
             slope=hydraulische_talud,
             friction_manning=friction_manning,
             friction_begroeiing=friction_begroeiing,
