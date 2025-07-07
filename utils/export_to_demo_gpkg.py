@@ -99,6 +99,8 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
                     ["afvoerverhang",                6],
                     ["WS_BODEMHOOGTE",               6],
                     ["WS_DIEPTE_DROGE_BEDDING",      6],
+                    ["geselecteerde_bodembreedte_onderhoud",      6],
+                    ["geselecteerde_diepte_onderhoud",      6],
                     ]
     # 1. Define your desired fields and types
     fields = QgsFields()

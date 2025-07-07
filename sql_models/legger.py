@@ -57,7 +57,7 @@ class Peilen(Base):
     winterpeil = Column(Float())
     zomerpeil = Column(Float())
     geometry = Column(
-        "geometry",
+        "GEOMETRY",
         Geometry(geometry_type='MULTIPOLYGON', srid=28992, spatial_index=True)
     )
 

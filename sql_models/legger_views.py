@@ -220,7 +220,9 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
         CAST(round(verhang_inlaat, 2)  AS DOUBLE) AS inlaatverhang,
         CAST(round(streefpeil - geselecteerde_hydraulische_diepte, 2)  AS DOUBLE) AS WS_BODEMHOOGTE,
         CAST(NULL AS DOUBLE) AS WS_DIEPTE_DROGE_BEDDING,
-        opmerkingen,               
+        opmerkingen,   
+        CAST(round(geselecteerde_bodembreedte, 2)  AS DOUBLE) AS geselecteerde_bodembreedte_onderhoud,
+        CAST(round(geselecteerde_diepte, 2)  AS DOUBLE) AS geselecteerde_diepte_onderhoud,            
         geometry
     FROM
         hydroobjects_selected_legger hsel_leg

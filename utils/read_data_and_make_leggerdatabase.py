@@ -150,7 +150,7 @@ class CreateLeggerSpatialite(object):
         SELECT proident, pro.osmomsch, pro_id, ho.hydroobject_id as hydroobject_id
         FROM imp_gw_pro pro
         LEFT JOIN imp_hydroobject ho ON st_intersects(pro.geometry, ho.geometry)  
-        where betrouwbaar = 1
+        -- where betrouwbaar =1 -- hierdoor geen profielen, iets gewijzigd in de export
         """))
 
         # vullen kenmerken

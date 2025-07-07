@@ -1074,6 +1074,7 @@ class LeggerWidget(QDockWidget):
                 'active': active,  # digits differ far after the
                 'depth': profile.diepte,
                 'hydrau_depth': profile.diepte if profile.hydraulische_diepte is None else profile.hydraulische_diepte,
+                'talud': profile.talud,
                 'width': profile.waterbreedte,
                 'begroeiingsvariant': bv_value,
                 'begroeiingsvariant_color': bv_color,
