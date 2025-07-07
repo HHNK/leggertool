@@ -56,12 +56,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
         output_path += '.gpkg'
 
     if os.path.exists(output_path):
-        # popup if sure
-        if QgsMessageLog.confirmWarning("Bestand bestaat al, bestaande vervangen?"):
-            os.remove(output_path)
-        else:
-            QgsMessageLog.logMessage("Export afgebroken.", Qgis.Warning)
-            return
+        os.remove(output_path)
 
     # 4. Stel de URI samen om de view in QGIS te laden als een vectorlaag
     uri = QgsDataSourceUri()
