@@ -1192,8 +1192,8 @@ class LeggerWidget(QDockWidget):
             self.hydrovak_graphSplitter.addWidget(self.graph_widget)
             self.contentLayout.addWidget(self.variantWidget)
 
-            self.hydrovak_graphSplitter.setStretchFactor(0, 0.75)
-            self.hydrovak_graphSplitter.setStretchFactor(1, 0.75)
+            self.hydrovak_graphSplitter.setStretchFactor(0, 1)
+            self.hydrovak_graphSplitter.setStretchFactor(1, 1)
             # self.graph_widget.setMinimumSize()
 
             if self.variantDockWidget:
@@ -1210,8 +1210,8 @@ class LeggerWidget(QDockWidget):
 
             def onGraphClose(e):
                 self.hydrovak_graphSplitter.addWidget(self.graph_widget)
-                self.hydrovak_graphSplitter.setStretchFactor(0, 0.75)
-                self.hydrovak_graphSplitter.setStretchFactor(1, 0.75)
+                self.hydrovak_graphSplitter.setStretchFactor(0, 1)
+                self.hydrovak_graphSplitter.setStretchFactor(1, 1)
                 self.graphDockWidget = None
                 e.accept()
 

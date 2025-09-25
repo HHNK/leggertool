@@ -6,7 +6,6 @@ from pathlib import Path
 OUR_DIR = Path(__file__).parent
 
 EXTERNAL_DEPENDENCY_DIR = OUR_DIR / "external"
-THREEDI_DEPENDENCY_DIR = OUR_DIR.parent / "ThreeDiToolbox" / "deps"
 
 
 log = logging.getLogger('legger')
@@ -24,8 +23,6 @@ def _update_path(directories):
             log.warning(
                 f"{dir_path} does not exist and is not added to sys.path"
                 )
-
-_update_path([THREEDI_DEPENDENCY_DIR])
 
 try:
     import pyqtgraph
@@ -46,31 +43,9 @@ except ImportError:
     _update_path([EXTERNAL_DEPENDENCY_DIR])
 
 
-# try:
-#     # temporary fix of libary geoalchemy2 in ThreeDiToolbox
-#     geoalchemy_fix_file = os.path.join(tdi_external, 'geoalchemy2', '__init__.py')
-#     f = open(geoalchemy_fix_file, 'r')
-#     new_content = f.read().replace(
-#         """
-#                                 bind.execute("VACUUM %s" % table.name)""",
-#         """
-#                                 try:
-#                                     bind.execute("VACUUM %s"%table.name)
-#                                 except:
-#                                     pass
-#         """)
-#     f.close()
-#     f = open(geoalchemy_fix_file, 'w')
-#     f.write(new_content)
-#     f.close()
-# except:
-#     log.warning('patch geoalchemy does not work')
-#
-# sys.path.append(tdi_external)
-import faulthandler
-
 if sys.stderr is not None:
     pass
+    import faulthandler
     # faulthandler.enable()
 
 # noinspection PyPep8Naming
