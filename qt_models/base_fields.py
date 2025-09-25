@@ -108,7 +108,8 @@ class RowFieldValue(object):
                 return Qt.Unchecked
         elif self.field.field_type == COLOR_FIELD:
             if self.value is not None:
-                return QColor(*self.value)
+                # make sure all values are int
+                return QColor(*[int(v) for v in self.value])
         else:
             return self._value
 
