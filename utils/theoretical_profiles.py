@@ -227,6 +227,9 @@ class HydroObject(object):
 
     def get_slope(self, water_width):
         table = self.slope_table
+        if self.slope_preference is not None:
+            return Decimal(self.slope_preference)
+
         if water_width is None:
             water_width = Decimal(10000)
         for row in table:

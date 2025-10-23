@@ -170,7 +170,7 @@ class NewWindow(QtWidgets.QWidget):
     """
     closeSignal = pyqtSignal()
 
-    def __init__(self, hydro_id, legger_db_filepath, callback_on_save=None):
+    def __init__(self, hydro_id, legger_db_filepath, callback_on_save=None, variant_id=None):
         """
         Initialize the dialog window.
 
@@ -178,6 +178,7 @@ class NewWindow(QtWidgets.QWidget):
             hydro_id: number
             legger_db_filepath: path
             callback_on_save (callable, optional): A function to call to save the new variant.
+            variant_id: Optional ID of an existing variant to edit.
         """
 
         super(NewWindow, self).__init__()
@@ -260,12 +261,40 @@ class NewWindow(QtWidgets.QWidget):
 
         self.settings = QSettings("leggertool", "new_profile")
 
-        defaults = {
-            'begroeiingsgraad': self.settings.value("begroeiingsgraad", default_variant),
-            'talud': Decimal(self.settings.value("talud", 2)),
-            'waterbreedte': Decimal(self.settings.value("waterbreedte", 2.4)),
-            'waterdiepte': Decimal(self.settings.value("waterdiepte", 0.5)),
-        }
+        defaults = None
+
+        if variant_id is not None:
+            cursor.execute("""
+                SELECT 
+                begroeiingsvariant_id,
+                talud,
+                waterbreedte,
+                diepte
+                FROM varianten 
+                WHERE id = ?
+                """,(
+                variant_id,
+            ))
+            row = cursor.fetchall()
+            row = row[0] if len(row) > 0 else None
+
+            if row is not None:
+                begroeiings_variant = first(self.variant_mapping.values(), lambda v: v.get('id') == row[0])
+
+                defaults = {
+                    'begroeiingsgraad': begroeiings_variant.get('naam') if begroeiings_variant is not None else default_variant,
+                    'talud': Decimal(row[1]),
+                    'waterbreedte': Decimal(row[2]),
+                    'waterdiepte': Decimal(row[3]),
+                }
+
+        if defaults is None:
+            defaults = {
+                'begroeiingsgraad': self.settings.value("begroeiingsgraad", default_variant),
+                'talud': Decimal(self.settings.value("talud", 2)),
+                'waterbreedte': Decimal(self.settings.value("waterbreedte", 2.4)),
+                'waterdiepte': Decimal(self.settings.value("waterdiepte", 0.5)),
+            }
 
         # default begroeiingsvariant
         self.begroeiings_combo.setCurrentIndex(self.variants.index(defaults['begroeiingsgraad']))

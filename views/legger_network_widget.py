@@ -254,10 +254,9 @@ class LeggerWidget(QDockWidget):
         self.variant_model.dataChanged.connect(self.data_changed_variant)
         self.legger_model.dataChanged.connect(self.data_changed_legger_tree)
         self.area_model.dataChanged.connect(self.data_changed_area_model)
-        self.show_manual_input_button.clicked.connect(
-            self.show_manual_input_window)
-        self.next_endpoint_button.clicked.connect(
-            self.set_next_endpoint)
+        self.show_manual_input_button.clicked.connect(self.show_manual_input_window)
+        self.show_edit_manual_input_button.clicked.connect(self.show_edit_manual_input_window)
+        self.next_endpoint_button.clicked.connect(self.set_next_endpoint)
         self.begroeiings_combo.currentIndexChanged.connect(self.onSelectBegroeiingsVariant)
         self.search_hydrovak.currentIndexChanged.connect(self.search_hydrovak_combo)
         self.map_search_button.clicked.connect(self.toggleMapTool)
@@ -424,6 +423,33 @@ class LeggerWidget(QDockWidget):
         self.legger_model.set_column_sizes_on_view(self.legger_tree_widget)
         if len(root.childs) > 0:
             self.loop_tree(root.childs[0], initial=True)
+
+    def show_edit_manual_input_window(self):
+        if self._new_window:
+            self._new_window.show()
+            self._new_window.raise_()
+            return
+
+        # get selected variant of hydrovak
+        variant_id = self.legger_model.selected.hydrovak.get('selected_variant_id')
+
+        self._new_window = NewWindow(
+            self.legger_model.selected.hydrovak.get("hydro_id"),
+            self.path_legger_db,
+            callback_on_save=lambda calc_out: self.update_available_profiles(
+                self.legger_model.selected, calc_out
+            ),
+            variant_id=variant_id
+        )
+
+        def on_close():
+            self._new_window.closeSignal.disconnect(on_close)
+            self._new_window = None
+
+        # connect to destroy event to set reference to null
+        self._new_window.closeSignal.connect(on_close)
+
+        self._new_window.show()
 
     def show_manual_input_window(self):
         if self._new_window:
@@ -720,11 +746,14 @@ class LeggerWidget(QDockWidget):
             elif node.hydrovak.get('selected'):
                 self.on_select_edit_hydrovak(self.legger_model.data(index, role=Qt.UserRole))
                 self.show_manual_input_button.setDisabled(False)
+                if node.hydrovak.get('selected_variant_id'):
+                    self.show_edit_manual_input_button.setDisabled(False)
 
             elif (self.legger_model.selected is None or
                   self.legger_model.data(index, role=Qt.UserRole) == self.legger_model.selected):
                 self.variant_model.removeRows(0, len(self.variant_model.rows))
                 self.show_manual_input_button.setDisabled(True)
+                self.show_edit_manual_input_button.setDisabled(True)
 
         elif self.legger_model.columns[index.column()].get('field') in ['ep', 'sp']:
             # clear current track
@@ -845,6 +874,8 @@ class LeggerWidget(QDockWidget):
         item = self.variant_model.rows[index.row()]
         if self.variant_model.columns[index.column()].name == 'active':
             if item.active.value:
+                self.show_edit_manual_input_button.setDisabled(False)
+
                 # only one selected at the time
                 item.color.value = list(item.color.value)[:3] + [255]
                 for row in self.variant_model.rows:
@@ -887,6 +918,7 @@ class LeggerWidget(QDockWidget):
                 # trigger repaint of sideview
                 self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
             else:
+                # self.show_edit_manual_input_button.setDisabled(True)
                 item.color.value = list(item.color.value)[:3] + [20]
                 # trigger repaint of sideview
                 self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
@@ -1268,6 +1300,7 @@ class LeggerWidget(QDockWidget):
 
         self.category_combo.currentIndexChanged.disconnect(self.category_change)
         self.show_manual_input_button.clicked.disconnect(self.show_manual_input_window)
+        self.show_edit_manual_input_button.clicked.disconnect(self.show_edit_manual_input_window)
         self.next_endpoint_button.clicked.disconnect(self.set_next_endpoint)
         self.variant_model.dataChanged.disconnect(self.data_changed_variant)
         self.legger_model.dataChanged.disconnect(self.data_changed_legger_tree)
@@ -1312,10 +1345,6 @@ class LeggerWidget(QDockWidget):
 
         # ------------ buttonbar -----------------
         # add button to add objects to graphs
-        self.show_manual_input_button = QPushButton(self)
-        self.button_bar_hlayout.addWidget(self.show_manual_input_button)
-        self.show_manual_input_button.setDisabled(True)
-
         self.button_bar_hlayout.addWidget(QLabel("filter t/m categorie:"))
         self.category_combo = QComboBox(self)
         self.button_bar_hlayout.addWidget(self.category_combo)
@@ -1334,6 +1363,14 @@ class LeggerWidget(QDockWidget):
         self.child_selection_strategy_combo = QComboBox(self)
         self.button_bar_hlayout.addWidget(QLabel("doortrekken tot:"))
         self.button_bar_hlayout.addWidget(self.child_selection_strategy_combo)
+
+        self.show_manual_input_button = QPushButton(self)
+        self.button_bar_hlayout.addWidget(self.show_manual_input_button)
+        self.show_manual_input_button.setDisabled(True)
+
+        self.show_edit_manual_input_button = QPushButton(self)
+        self.button_bar_hlayout.addWidget(self.show_edit_manual_input_button)
+        self.show_edit_manual_input_button.setDisabled(True)
 
         spacer_item = QSpacerItem(40,
                                   20,
@@ -1461,6 +1498,8 @@ class LeggerWidget(QDockWidget):
             "DockWidget", "Legger", None))
         self.show_manual_input_button.setText(_translate(
             "DockWidget", "Voeg profiel toe", None))
+        self.show_edit_manual_input_button.setText(_translate(
+            "DockWidget", "Bewerk profiel", None))
         self.next_endpoint_button.setText(_translate(
             "DockWidget", "Volgend eindpunt", None))
         self.kijk_variant_knop.setText(_translate(
