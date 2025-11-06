@@ -26,6 +26,10 @@ class AutomaticFillLegger(object):
         return self._cursor
 
     def get_table(self):
+        """Load the standaard_profielen.csv file and return as a nested dictionary.
+        The first level is grondsoort, the second level is debiet, then a dictionary with
+        the debiet and a list of variants for this debiet."""
+
         settings = csv.DictReader(open(self.legger_table, 'r'))
 
         tmp = {}
@@ -51,6 +55,29 @@ class AutomaticFillLegger(object):
 
         return out
 
+    def filter_table_on_talud(self, table, taludvoorkeur):
+        """Filter the profile table on taludvoorkeur value.
+
+        Params:
+            table: nested dictionary as returned by get_table() on 'grondsoort' level, so
+                {[debiet]: {debiet: float, varianten: [variant_dicts]}}
+            taludvoorkeur: float value of taludvoorkeur to filter on
+        Returns:
+            filtered nested dictionary
+        """
+        out = {}
+        for debiet, vars in table.items():
+            filtered_varianten = [
+                variant for variant in vars['varianten']
+                if abs(float(variant.get('ltalud')) - float(taludvoorkeur)) < 0.00001
+            ]
+            if filtered_varianten:
+                out[debiet] = {
+                    'debiet': vars['debiet'],
+                    'varianten': filtered_varianten
+                }
+        return out
+
     def get_hydrovakken(self):
         self._db_cursor.execute("""
             SELECT 
@@ -62,7 +89,8 @@ class AutomaticFillLegger(object):
                 k.lengte,
                 k.grondsoort,
                 (ho.zomerpeil - ho.streefpeil) as zpeil_diff,
-                ho.debiet_inlaat
+                ho.debiet_inlaat,
+                k.taludvoorkeur
             FROM 
                 hydroobject ho 
             INNER JOIN kenmerken k ON k.hydro_id = ho.id
@@ -79,6 +107,7 @@ class AutomaticFillLegger(object):
                 grondsoort=r[6],
                 zpeil_diff=r[7],
                 debiet_inlaat=r[8],
+                taludvoorkeur=r[9],
             )
             for nr, r in enumerate(self._db_cursor.fetchall())]
 
@@ -279,13 +308,18 @@ class AutomaticFillLegger(object):
             profiel_breedte = hydrovak.get('breedte')
             profiel_diepte = hydrovak.get('diepte')
             zpeil_diff = hydrovak.get('zpeil_diff')
-
+            taludvoorkeur = hydrovak.get('taludvoorkeur')
             if not zpeil_diff:
                 zpeil_diff = 0.0
 
             debiet_def = max(abs(debiet if debiet else 0.0), abs(debiet_inlaat if debiet_inlaat else 0.0))
 
+            # get options based on grondsoort
             profile_options_grondsoort = get_profile_options(grondsoort)
+
+            if taludvoorkeur:
+                # filter, keep only options with taludvoorkeur
+                profile_options_grondsoort = self.filter_table_on_talud(profile_options_grondsoort, taludvoorkeur)
 
             # verhang and verhang_inlaat will be added to profile_options_grondsoort
             self.add_default_variants(hydro_id, code, profile_options_grondsoort, debiet, debiet_inlaat, zpeil_diff)
@@ -296,46 +330,42 @@ class AutomaticFillLegger(object):
             if profile_options is None:
                 continue
 
-            hydrovak_selected[code] = []
-
-            found = False
             varianten = profile_options.get('varianten')
             varianten.reverse()
+            selected_variants = []
+            gradient_norm = get_gradient_norm(grondsoort)
+
             if profiel_breedte is not None and profiel_diepte is not None:
-                gradient_norm = get_gradient_norm(grondsoort)
                 for option in varianten:
                     if (float(option.get("lwbreedte")) <= profiel_breedte
-                            and float(option.get("ldiepte")) <= profiel_diepte
-                    ):
-                        found = True
-                        hydrovak_selected[code].append({
+                            and float(option.get("ldiepte")) <= profiel_diepte):
+                        selected_variants.append({
                             'option': option,
                             'hydrovak': hydrovak,
                             'gradient_inlaat_ok': (not option.get("verhang_inlaat")
                                                    or float(option.get("verhang_inlaat")) <= gradient_norm)
                         })
             # als niet gevonden, dan alleen op breedte voor hydrovakken met een oppervlak kleiner dan 25 ha (0.042 m3/s)
-            if not found and profiel_breedte is not None and debiet_inlaat is not None and debiet <= 0.042 and debiet_inlaat <= 0.042:
-                gradient_norm = get_gradient_norm(grondsoort)
+            if len(selected_variants) == 0 and profiel_breedte is not None and debiet_inlaat is not None and debiet <= 0.042 and debiet_inlaat <= 0.042:
                 for option in varianten:
-                    if (float(option.get("lwbreedte")) <= profiel_breedte):
-                        found = True
-                        hydrovak_selected[code].append({
+                    if float(option.get("lwbreedte")) <= profiel_breedte:
+                        selected_variants.append({
                             'option': option,
                             'hydrovak': hydrovak,
                             'gradient_inlaat_ok': (not option.get("verhang_inlaat")
                                                    or float(option.get("verhang_inlaat")) <= gradient_norm)
                         })
 
-        # netwerk analyses om meerdere opties te toetsen op diepte.
+            hydrovak_selected[code] = selected_variants
+
         # voor nu de eerste optie
-        for key, items in hydrovak_selected.items():
-            valid_items = [item for item in items if item.get('gradient_inlaat_ok')]
-            if len(valid_items):
-                selected = items[0]
+        for hydro_code, selected_variants in hydrovak_selected.items():
+            valid_variants = [item for item in selected_variants if item.get('gradient_inlaat_ok')]
+            if len(valid_variants):
+                selected = valid_variants[0]
             else:
                 selected = None
-            hydrovak_selected[key] = selected
+            hydrovak_selected[hydro_code] = selected
 
         # wegschrijven
         self.save_to_database(hydrovak_selected)
