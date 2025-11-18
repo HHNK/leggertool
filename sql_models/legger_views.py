@@ -154,7 +154,7 @@ def create_legger_views(session: sqlite3.Connection):
                 k.diepte,
                 k.breedte, 
                 k.grondsoort, 
-                h.taludvoorkeur,
+                k.taludvoorkeur,
                 h.kijkp_breedte,
                 h.kijkp_diepte,
                 h.kijkp_talud,
