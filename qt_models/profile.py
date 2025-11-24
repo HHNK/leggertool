@@ -102,15 +102,20 @@ class ProfileModel(ModifiedBaseModel):
                            round=2,
                            column_name='L-dpt',
                            column_tooltip='Legger diepte [m]')
+        hydrau_bottom_width = ValueField(show=True,
+                           column_width=45,
+                           round=2,
+                           column_name='L-bdm-br',
+                           column_tooltip='Legger bodem breedte [m]')
         talud = ValueField(show=True,
                            column_width=45,
                            round=2,
-                           column_name='tld',
-                           column_tooltip='Talud')
+                           column_name='talud',
+                           column_tooltip='talud')
         width = ValueField(show=True,
                            column_width=45,
                            round=2,
-                           column_name='br',
+                           column_name='w-brd',
                            column_tooltip='profielbreedte [m]')
         begroeiingsvariant = ValueField(show=True,
                                         column_width=70,

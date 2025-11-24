@@ -1106,11 +1106,11 @@ class LeggerWidget(QDockWidget):
                 'active': active,  # digits differ far after the
                 'depth': profile.diepte,
                 'hydrau_depth': profile.diepte if profile.hydraulische_diepte is None else profile.hydraulische_diepte,
+                'hydrau_bottom_width': profile.hydraulische_bodembreedte,
                 'talud': profile.talud,
                 'width': profile.waterbreedte,
                 'begroeiingsvariant': bv_value,
                 'begroeiingsvariant_color': bv_color,
-                'score': profile.figuren[0].t_fit if profile.figuren else None,
                 'over_depth': over_depth if over_depth is not None else None,
                 'over_width': over_width if over_depth is not None else None,
                 'over_width_color': over_width_color,
@@ -1120,6 +1120,7 @@ class LeggerWidget(QDockWidget):
                 'verhang_inlaat': profile.verhang_inlaat,
                 'color_inlaat': interpolated_color(value=profile.verhang_inlaat, color_map=color_map,
                                                    alpha=(255 if active else 80)),
+                'score': profile.figuren[0].t_fit if profile.figuren else None,
                 'points': [
                     (-0.5 * profile.waterbreedte, hydro_object.streefpeil),
                     (-0.5 * profile.bodembreedte, hydro_object.streefpeil - profile.diepte),

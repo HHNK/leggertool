@@ -50,6 +50,7 @@ class LeggerPlotWidget(pg.PlotWidget):
         self.showGrid(True, True, 0.5)
         self.setLabel("bottom", "breedte", "m")
         self.setLabel("left", "hoogte", "m tov waterlijn")
+        self.setTitle("Onderhoudsprofiel")
 
         self.def_measured_opacity = 80
 
