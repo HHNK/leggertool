@@ -95,7 +95,7 @@ class ProfileModel(ModifiedBaseModel):
         depth = ValueField(show=True,
                            column_width=45,
                            round=2,
-                           column_name='O-dpt',
+                           column_name='On-dpt',
                            column_tooltip='Onderhoudsdiepte (Leggerplus) [m]')
         hydrau_depth = ValueField(show=True,
                            column_width=45,
@@ -105,7 +105,7 @@ class ProfileModel(ModifiedBaseModel):
         hydrau_bottom_width = ValueField(show=True,
                            column_width=45,
                            round=2,
-                           column_name='L-bdm-br',
+                           column_name='L-bdmbr',
                            column_tooltip='Legger bodem breedte [m]')
         talud = ValueField(show=True,
                            column_width=45,
@@ -116,7 +116,7 @@ class ProfileModel(ModifiedBaseModel):
                            column_width=45,
                            round=2,
                            column_name='w-brd',
-                           column_tooltip='profielbreedte [m]')
+                           column_tooltip='Waterbreedte [m]')
         begroeiingsvariant = ValueField(show=True,
                                         column_width=70,
                                         column_name='begr',
@@ -174,3 +174,8 @@ class ProfileModel(ModifiedBaseModel):
         prof_series = ValueField(show=False)
         points = ValueField(show=False)
         _plot = None
+
+    # Default row height (in pixels) for this model when shown in a QTableView.
+    # A view (e.g., `VariantenTable`) can use this to set the vertical header
+    # default section size to match the model's expected row height.
+    row_height = 24

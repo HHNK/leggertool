@@ -101,6 +101,26 @@ class VariantenTable(QTableView):
 
         self.resizeColumnsToContents()
         self.model().set_column_sizes_on_view(self)
+        # set row height from model if provided
+        try:
+            row_height = getattr(self.model(), 'row_height', None)
+            if row_height:
+                # default section size influences the vertical header (row heights)
+                self.verticalHeader().setDefaultSectionSize(int(row_height))
+        except Exception:
+            # ignore if the view or model doesn't support this attribute
+            pass
+        # ensure header tooltips are present on the view header; some Qt versions
+        # do not query headerData with ToolTipRole automatically for model-based
+        # views. We explicitly set headerData for Qt.ToolTipRole so the header
+        # shows the tooltip.
+        try:
+            for col_nr in range(0, self.model().columnCount()):
+                tooltip = getattr(self.model().columns[col_nr], 'column_tooltip', None)
+                if tooltip:
+                    self.model().setHeaderData(col_nr, Qt.Horizontal, tooltip, Qt.ToolTipRole)
+        except Exception:
+            pass
 
 
 class StartpointTreeWidget(QTreeView):
@@ -196,6 +216,23 @@ class StartpointTreeWidget(QTreeView):
         super(StartpointTreeWidget, self).setModel(model)
 
         self.model().set_column_sizes_on_view(self)
+        # ensure header tooltips are set for tree model
+        try:
+            for col_nr in range(0, self.model().columnCount()):
+                tooltip = None
+                # tree models use `headers` with 'header_tooltip'
+                try:
+                    tooltip = self.model().headers[col_nr].get('header_tooltip')
+                except Exception:
+                    # fall back to columns with column_tooltip
+                    try:
+                        tooltip = getattr(self.model().columns[col_nr], 'column_tooltip', None)
+                    except Exception:
+                        tooltip = None
+                if tooltip:
+                    self.model().setHeaderData(col_nr, Qt.Horizontal, tooltip, Qt.ToolTipRole)
+        except Exception:
+            pass
 
 
 class LeggerTreeWidget(QTreeView):
@@ -319,3 +356,18 @@ class LeggerTreeWidget(QTreeView):
         super(LeggerTreeWidget, self).setModel(model)
 
         self.model().set_column_sizes_on_view(self)
+        # ensure header tooltips are set for tree model
+        try:
+            for col_nr in range(0, self.model().columnCount()):
+                tooltip = None
+                try:
+                    tooltip = self.model().headers[col_nr].get('header_tooltip')
+                except Exception:
+                    try:
+                        tooltip = getattr(self.model().columns[col_nr], 'column_tooltip', None)
+                    except Exception:
+                        tooltip = None
+                if tooltip:
+                    self.model().setHeaderData(col_nr, Qt.Horizontal, tooltip, Qt.ToolTipRole)
+        except Exception:
+            pass

@@ -69,7 +69,7 @@ HORIZONTAL_HEADERS = (
      'column_width': 50},
     {'field': 'over_depth', 'header': 'over-dpt', 'header_tooltip': 'overdiepte (* obv theoretisch profiel)',
      'column_width': 50},
-    {'field': 'over_width', 'header': 'ober-brdt', 'header_tooltip': 'overbreedte (* obv theoretisch profiel)',
+    {'field': 'over_width', 'header': 'over-brdt', 'header_tooltip': 'overbreedte (* obv theoretisch profiel)',
      'column_width': 50},
     {'field': 'selected_begroeiingsvariant_id', 'header': 'beg',
      'header_tooltip': 'geselecteerde begroeiingsvariant id', 'column_width': 30},
