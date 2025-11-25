@@ -107,7 +107,9 @@ class BaseTreeModel(QtCore.QAbstractItemModel):
 
         self.headers = headers
         self.headers_dict = dict([(h['field'], h) for h in headers])
-        self.total_width = sum([max(h.get('column_width', 70), 70) for h in headers if h.get('show', True)])
+        # allow smaller column widths (some headers define small values like 10 or 15)
+        # use a sensible minimum (10) rather than forcing 70 as minimum
+        self.total_width = sum([max(h.get('column_width', 70), 10) for h in headers if h.get('show', True)])
 
         self.item_class = item_class
         if root_item:
@@ -440,7 +442,8 @@ class BaseTreeModel(QtCore.QAbstractItemModel):
             factor = ((width - 40) / self.total_width)
 
         for i, col in enumerate(self.headers):
-            width = max(col.get('column_width', 70), 70)
+            # use configured column_width (fallback 70) but allow small values (min 10)
+            width = max(col.get('column_width', 70), 10)
             show = col.get('show', True)
             if show:
                 tree_view.setColumnWidth(i, round(float(width) * factor))
