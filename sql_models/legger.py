@@ -338,7 +338,7 @@ class GeselecteerdeProfielen(Base):
     selected_on = Column(DateTime, default=datetime.datetime.utcnow)
     tot_verhang = Column(Float)
 
-    hydro_verhang = Column(Float)
+    # hydro_verhang = Column(Float)
 
     hydro = relationship(HydroObject,
                          back_populates="geselecteerd")

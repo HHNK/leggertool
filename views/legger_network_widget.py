@@ -22,6 +22,7 @@ from legger.utils.network import Network
 from legger.utils.network_utils import LeggerMapVisualisation
 from legger.utils.user_message import messagebar_message
 from legger.views.input_widget import NewWindow
+from legger.views.input_widget import first
 from legger.views.kijk_legger_popup import KijkProfielPopup
 from sqlalchemy import and_, or_
 
@@ -260,6 +261,8 @@ class LeggerWidget(QDockWidget):
         self.begroeiings_combo.currentIndexChanged.connect(self.onSelectBegroeiingsVariant)
         self.search_hydrovak.currentIndexChanged.connect(self.search_hydrovak_combo)
         self.map_search_button.clicked.connect(self.toggleMapTool)
+        self.undo_button.clicked.connect(self.do_undo)
+        self.redo_button.clicked.connect(self.do_redo)
 
         self.kijk_variant_knop.clicked.connect(self.open_kijkprofiel_dialog)
 
@@ -304,6 +307,10 @@ class LeggerWidget(QDockWidget):
         self.init_talud = 2
         self.init_reason = ''
         self.selected_hydrovak_db = None
+
+        self.change_cache = []
+        self.change_array = []
+        self.current_change_nr = 0
 
         log.warning('starting: ready init LeggerWidget')
         return
@@ -621,21 +628,35 @@ class LeggerWidget(QDockWidget):
                     self.legger_model.setDataItemKey(node, 'over_width', over_width)
 
                     if not initial:
+                        change = {}
                         # save selected variant
                         selected = self.session.query(GeselecteerdeProfielen).filter(
                             GeselecteerdeProfielen.hydro_id == node.hydrovak.get('hydro_id')).first()
+
+                        change['hydro_id'] = node.hydrovak.get('hydro_id')
+
                         if selected:
+                            change['old'] = {
+                                'variant_id': selected.variant_id,
+                                'selected_on': selected.selected_on,
+                            }
                             selected.variant = profilev
                             selected.selected_on = datetime.datetime.now()
-                            selected.hydro_verhang = profilev.verhang * node.hydrovak.get('length')
                         else:
+                            # nieuw
+                            change['old_variant'] = None
                             selected = GeselecteerdeProfielen(
                                 hydro_id=node.hydrovak.get('hydro_id'),
                                 variant_id=profilev.id,
                                 selected_on=datetime.datetime.now(),
-                                hydro_verhang=profilev.verhang * node.hydrovak.get('length') / 1000
                             )
+                        change["new"] = {
+                            "variant_id": selected.variant.id,
+                            "selected_on": selected.selected_on,
+                        }
+
                         self.session.add(selected)
+                        self.change_cache.append(change)
             elif not initial:
                 # no variant which fits criteria. stop iteration here
                 return
@@ -913,10 +934,24 @@ class LeggerWidget(QDockWidget):
                     traject_nodes=traject
                 )
                 self.session.commit()
+                # todo: logic for when session.commit raise an error?!
+                # add changes to undo array
+
+                # remove old redo options
+                if len(self.change_array) > self.current_change_nr:
+                    self.change_array = self.change_array[:self.current_change_nr]
+
+                self.current_change_nr = len(self.change_array) + 1
+                self.change_array.append({
+                    "nr": self.current_change_nr,
+                    "changes": self.change_cache
+                })
+                self.change_cache = []
                 # todo: update here the cumulative slope calculation
 
                 # trigger repaint of sideview
                 self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+                self.update_undo_buttons()
             else:
                 # self.show_edit_manual_input_button.setDisabled(True)
                 item.color.value = list(item.color.value)[:3] + [20]
@@ -1240,6 +1275,12 @@ class LeggerWidget(QDockWidget):
         else:
             self.graphDockWidget = QDockWidget(self)
             self.variantDockWidget = QDockWidget(self)
+            self.graphDockWidget.setWindowTitle(
+                _translate("DockWidget", "Grafieken", None)
+            )
+            self.variantDockWidget.setWindowTitle(
+                _translate("DockWidget", "Varianten", None)
+            )
 
             def onGraphClose(e):
                 self.hydrovak_graphSplitter.addWidget(self.graph_widget)
@@ -1270,6 +1311,205 @@ class LeggerWidget(QDockWidget):
 
     def on_graph_dockwidget_close(self):
         self.contentLayout.addWidget(self.graph_widget)
+
+    def update_undo_buttons(self):
+        """
+        activate or deactivate undo buttons based on status
+
+        return: None
+        """
+        if  self.current_change_nr > 0:
+            self.undo_button.setEnabled(True)
+            self.undo_button.setText(f"undo ({self.current_change_nr})")
+        else:
+            self.undo_button.setEnabled(False)
+            self.undo_button.setText("undo")
+
+        if self.current_change_nr < len(self.change_array):
+            self.redo_button.setEnabled(True)
+            self.redo_button.setText(f"redo ({len(self.change_array) - self.current_change_nr})")
+        else:
+            self.redo_button.setEnabled(False)
+            self.redo_button.setText("redo")
+
+    def do_undo(self):
+        """
+        perform undo
+        return: None
+        """
+        changes = self.change_array[self.current_change_nr - 1]
+        for change in changes["changes"]:
+            self.set_to_variant(
+                change['hydro_id'],
+                change['old']['variant_id'],
+                change['old']['selected_on']
+            )
+            if change['hydro_id'] == self.selected_hydrovak.hydrovak.get('id'):
+                variant_id = change['old']['variant_id']
+
+                if variant_id is None:
+                    # reset active
+                    # self.variant_model.setData(index, False, Qt.CheckStateRole)
+                    pass
+
+                variant = first(self.variant_model.rows, lambda x: x.name.value == variant_id)
+                row_index = self.variant_model.rows.index(variant)
+                col_index = None
+                for i, col in enumerate(self.variant_model.columns):
+                    if col.name == "active":
+                        col_index = i
+                        break
+                index = self.variant_model.index(row_index, col_index)
+                self.variant_model.setData(index, True, Qt.CheckStateRole)
+
+        self.session.commit()
+        self.current_change_nr -= 1
+        self.update_undo_buttons()
+
+    def do_redo(self):
+        """
+        perform redo
+        return: None
+        """
+        changes = self.change_array[self.current_change_nr]
+        for change in changes["changes"]:
+            self.set_to_variant(
+                change["hydro_id"],
+                change["new"]["variant_id"],
+                change["new"]["selected_on"],
+            )
+            if change["hydro_id"] == self.selected_hydrovak.hydrovak.get("id"):
+                variant_id = change["old"]["variant_id"]
+
+                if variant_id is None:
+                    # reset active
+                    # self.variant_model.setData(index, False, Qt.CheckStateRole)
+                    pass
+
+                variant = first(
+                    self.variant_model.rows, lambda x: x.name.value == variant_id
+                )
+                row_index = self.variant_model.rows.index(variant)
+                col_index = None
+                for i, col in enumerate(self.variant_model.columns):
+                    if col.name == "active":
+                        col_index = i
+                        break
+                index = self.variant_model.index(row_index, col_index)
+                self.variant_model.setData(index, True, Qt.CheckStateRole)
+
+        self.session.commit()
+        self.current_change_nr += 1
+        self.update_undo_buttons()
+
+    def set_to_variant(self, hydro_id, variant_id, selected_on):
+        # change["hydro_id"]
+        # find node
+        node = None
+
+        root_node = self.legger_model.rootItem.child(0)
+        index = self.legger_model.find_younger(self.legger_model.createIndex(root_node.row(), 0, root_node),
+                                               'hydro_id',
+                                               hydro_id)
+
+        if index is not None:
+            node = self.legger_model.data(index, role=Qt.UserRole)
+
+        if variant_id is None:
+            if node:
+                self.legger_model.setDataItemKey(node, "selected_depth", None)
+                self.legger_model.setDataItemKey(node, "selected_width", None)
+                self.legger_model.setDataItemKey(
+                    node, "selected_variant_id", None
+                )
+                self.legger_model.setDataItemKey(
+                    node,
+                    "selected_begroeiingsvariant_id",
+                    None
+                )
+                self.legger_model.setDataItemKey(node, "verhang", None)
+                self.legger_model.setDataItemKey(node, "verhang_inlaat", None)
+                self.legger_model.setDataItemKey(node, "score", None)
+                self.legger_model.setDataItemKey(node, "over_depth", None)
+                self.legger_model.setDataItemKey(node, "over_width", None)
+
+            selected = (
+                self.session.query(GeselecteerdeProfielen)
+                .filter(GeselecteerdeProfielen.hydro_id == hydro_id)
+                .first()
+            )
+            if selected:
+                self.session.delete(selected)
+            else:
+                pass
+
+        else:
+            profile_variant = self.session.query(Varianten).filter(
+                Varianten.id == variant_id,
+            )
+
+            if profile_variant.count() == 0:
+                # todo: this should not happen!
+                raise Exception("Variant bestaat niet meer ?!?")
+            profile_variant = profile_variant.first()
+
+            # get all info to display in legger table
+            if node:
+                depth = profile_variant.diepte
+
+                over_depth = (
+                    node.hydrovak.get("depth") - depth
+                    if node.hydrovak.get("depth") is not None
+                    else None
+                )
+                width = profile_variant.waterbreedte
+                over_width = (
+                    node.hydrovak.get("width") - width
+                    if node.hydrovak.get("width") is not None
+                    else None
+                )
+
+                figuren = profile_variant.figuren
+                score = None
+                if len(figuren) > 0:
+                    figuur = figuren[0]
+                    # over_width = "{0:.2f}".format(figuur.t_overbreedte_l + figuur.t_overbreedte_r) \
+                    #     if figuur.t_overbreedte_l is not None else over_width
+                    score = "{0:.2f}".format(figuur.t_fit)
+                    # over_depth = "{0:.2f}".format(
+                    #     figuur.t_overdiepte) if figuur.t_overdiepte is not None else over_depth
+                over_depth = "{}".format(try_round(over_depth, 2, "-"))
+                over_width = "{}".format(try_round(over_width, 2, "-"))
+
+                verhang = try_round(profile_variant.verhang, 1, "-")
+                verhang_inlaat = try_round(profile_variant.verhang_inlaat, 1, "-")
+                self.legger_model.setDataItemKey(node, "selected_depth", depth)
+                self.legger_model.setDataItemKey(node, "selected_width", width)
+                self.legger_model.setDataItemKey(node, "selected_variant_id", profile_variant.id)
+                self.legger_model.setDataItemKey(
+                    node, "selected_begroeiingsvariant_id", profile_variant.begroeiingsvariant_id
+                )
+                self.legger_model.setDataItemKey(node, "verhang", verhang)
+                self.legger_model.setDataItemKey(node, "verhang_inlaat", verhang_inlaat)
+                self.legger_model.setDataItemKey(node, "score", score)
+                self.legger_model.setDataItemKey(node, "over_depth", over_depth)
+                self.legger_model.setDataItemKey(node, "over_width", over_width)
+
+            selected = (
+                self.session.query(GeselecteerdeProfielen)
+                .filter(
+                    GeselecteerdeProfielen.hydro_id == hydro_id
+                )
+                .first()
+            )
+
+            if selected:
+                selected.variant_id = variant_id
+                selected.selected_on = selected_on
+                self.session.add(selected)
+            else:
+                pass
+                # strange?!
 
     def closeEvent(self, event):
         """
@@ -1372,6 +1612,14 @@ class LeggerWidget(QDockWidget):
         self.show_edit_manual_input_button = QPushButton(self)
         self.button_bar_hlayout.addWidget(self.show_edit_manual_input_button)
         self.show_edit_manual_input_button.setDisabled(True)
+
+        self.undo_button = QPushButton(self)
+        self.button_bar_hlayout.addWidget(self.undo_button)
+        self.undo_button.setDisabled(True)
+
+        self.redo_button = QPushButton(self)
+        self.button_bar_hlayout.addWidget(self.redo_button)
+        self.redo_button.setDisabled(True)
 
         spacer_item = QSpacerItem(40,
                                   20,
@@ -1494,13 +1742,17 @@ class LeggerWidget(QDockWidget):
         QMetaObject.connectSlotsByName(dock_widget)
 
     def retranslate_ui(self, dock_widget):
-        pass
+
         dock_widget.setWindowTitle(_translate(
             "DockWidget", "Legger", None))
         self.show_manual_input_button.setText(_translate(
             "DockWidget", "Voeg profiel toe", None))
         self.show_edit_manual_input_button.setText(_translate(
             "DockWidget", "Bewerk profiel", None))
+        self.undo_button.setText(_translate(
+            "DockWidget", "undo", None))
+        self.redo_button.setText(_translate(
+            "DockWidget", "redo", None))
         self.next_endpoint_button.setText(_translate(
             "DockWidget", "Volgend eindpunt", None))
         self.kijk_variant_knop.setText(_translate(
