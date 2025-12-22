@@ -312,6 +312,8 @@ class LeggerWidget(QDockWidget):
         self.change_array = []
         self.current_change_nr = 0
 
+        self.in_undo_redo = False
+
         log.warning('starting: ready init LeggerWidget')
         return
 
@@ -903,6 +905,14 @@ class LeggerWidget(QDockWidget):
                     if row.active.value and row != item:
                         row.active.value = False
 
+                if self.in_undo_redo:
+                    # if part of undo/redo, do not save changes
+
+                    self.sideview_widget.draw_selected_lines(
+                        self.sideview_widget._get_data()
+                    )
+                    return
+
                 depth = item.depth.value
                 selected_variant_id = item.name.value
                 traject = []
@@ -1337,30 +1347,38 @@ class LeggerWidget(QDockWidget):
         perform undo
         return: None
         """
+        self.in_undo_redo = True
         changes = self.change_array[self.current_change_nr - 1]
-        for change in changes["changes"]:
-            self.set_to_variant(
-                change['hydro_id'],
-                change['old']['variant_id'],
-                change['old']['selected_on']
-            )
-            if change['hydro_id'] == self.selected_hydrovak.hydrovak.get('id'):
-                variant_id = change['old']['variant_id']
+        try:
+            for change in changes["changes"]:
+                self.set_to_variant(
+                    change['hydro_id'],
+                    change['old']['variant_id'],
+                    change['old']['selected_on']
+                )
+                if change['hydro_id'] == self.selected_hydrovak.hydrovak.get('id'):
+                    variant_id = change['old']['variant_id']
 
-                if variant_id is None:
-                    # reset active
-                    # self.variant_model.setData(index, False, Qt.CheckStateRole)
-                    pass
+                    if variant_id is None:
+                        # reset active
+                        # self.variant_model.setData(index, False, Qt.CheckStateRole)
+                        pass
 
-                variant = first(self.variant_model.rows, lambda x: x.name.value == variant_id)
-                row_index = self.variant_model.rows.index(variant)
-                col_index = None
-                for i, col in enumerate(self.variant_model.columns):
-                    if col.name == "active":
-                        col_index = i
-                        break
-                index = self.variant_model.index(row_index, col_index)
-                self.variant_model.setData(index, True, Qt.CheckStateRole)
+                    variant = first(self.variant_model.rows, lambda x: x.name.value == variant_id)
+                    row_index = self.variant_model.rows.index(variant)
+                    col_index = None
+                    for i, col in enumerate(self.variant_model.columns):
+                        if col.name == "active":
+                            col_index = i
+                            break
+                    index = self.variant_model.index(row_index, col_index)
+                    self.variant_model.setData(index, True, Qt.CheckStateRole)
+        except Exception as e:
+            print("Error during undo:", e)
+            self.session.rollback()
+            raise e
+        finally:
+            self.in_undo_redo = False
 
         self.session.commit()
         self.current_change_nr -= 1
@@ -1371,32 +1389,40 @@ class LeggerWidget(QDockWidget):
         perform redo
         return: None
         """
+        self.in_undo_redo = True
         changes = self.change_array[self.current_change_nr]
-        for change in changes["changes"]:
-            self.set_to_variant(
-                change["hydro_id"],
-                change["new"]["variant_id"],
-                change["new"]["selected_on"],
-            )
-            if change["hydro_id"] == self.selected_hydrovak.hydrovak.get("id"):
-                variant_id = change["old"]["variant_id"]
-
-                if variant_id is None:
-                    # reset active
-                    # self.variant_model.setData(index, False, Qt.CheckStateRole)
-                    pass
-
-                variant = first(
-                    self.variant_model.rows, lambda x: x.name.value == variant_id
+        try:
+            for change in changes["changes"]:
+                self.set_to_variant(
+                    change["hydro_id"],
+                    change["new"]["variant_id"],
+                    change["new"]["selected_on"],
                 )
-                row_index = self.variant_model.rows.index(variant)
-                col_index = None
-                for i, col in enumerate(self.variant_model.columns):
-                    if col.name == "active":
-                        col_index = i
-                        break
-                index = self.variant_model.index(row_index, col_index)
-                self.variant_model.setData(index, True, Qt.CheckStateRole)
+                if change["hydro_id"] == self.selected_hydrovak.hydrovak.get("id"):
+                    variant_id = change["new"]["variant_id"]
+
+                    if variant_id is None:
+                        # reset active
+                        # self.variant_model.setData(index, False, Qt.CheckStateRole)
+                        pass
+
+                    variant = first(
+                        self.variant_model.rows, lambda x: x.name.value == variant_id
+                    )
+                    row_index = self.variant_model.rows.index(variant)
+                    col_index = None
+                    for i, col in enumerate(self.variant_model.columns):
+                        if col.name == "active":
+                            col_index = i
+                            break
+                    index = self.variant_model.index(row_index, col_index)
+                    self.variant_model.setData(index, True, Qt.CheckStateRole)
+        except Exception as e:
+            print("Error during redo:", e)
+            self.session.rollback()
+            raise e
+        finally:
+            self.in_undo_redo = False
 
         self.session.commit()
         self.current_change_nr += 1
