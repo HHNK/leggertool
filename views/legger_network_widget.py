@@ -1577,6 +1577,8 @@ class LeggerWidget(QDockWidget):
 
         self.session.commit()
         self.current_change_nr -= 1
+
+        self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
         self.update_undo_buttons()
 
     def do_redo(self):
@@ -1621,6 +1623,8 @@ class LeggerWidget(QDockWidget):
 
         self.session.commit()
         self.current_change_nr += 1
+
+        self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
         self.update_undo_buttons()
 
     def set_to_variant(self, hydro_id, variant_id, selected_on):
@@ -1640,7 +1644,6 @@ class LeggerWidget(QDockWidget):
 
         if variant_id is None:
             if node:
-                self.legger_model.setDataItemKey(node, "selected_depth", None)
                 self.legger_model.setDataItemKey(node, "selected_width", None)
                 self.legger_model.setDataItemKey(node, "selected_variant_id", None)
                 self.legger_model.setDataItemKey(
@@ -1651,6 +1654,8 @@ class LeggerWidget(QDockWidget):
                 self.legger_model.setDataItemKey(node, "score", None)
                 self.legger_model.setDataItemKey(node, "over_depth", None)
                 self.legger_model.setDataItemKey(node, "over_width", None)
+                # selected depth as last, because this triggers redraw of colors of full line
+                self.legger_model.setDataItemKey(node, "selected_depth", None)
 
             selected = (
                 self.session.query(GeselecteerdeProfielen)
@@ -1702,7 +1707,6 @@ class LeggerWidget(QDockWidget):
 
                 verhang = try_round(profile_variant.verhang, 1, "-")
                 verhang_inlaat = try_round(profile_variant.verhang_inlaat, 1, "-")
-                self.legger_model.setDataItemKey(node, "selected_depth", depth)
                 self.legger_model.setDataItemKey(node, "selected_width", width)
                 self.legger_model.setDataItemKey(
                     node, "selected_variant_id", profile_variant.id
@@ -1717,6 +1721,8 @@ class LeggerWidget(QDockWidget):
                 self.legger_model.setDataItemKey(node, "score", score)
                 self.legger_model.setDataItemKey(node, "over_depth", over_depth)
                 self.legger_model.setDataItemKey(node, "over_width", over_width)
+                # selected depth as last, because this triggers redraw of colors of full line
+                self.legger_model.setDataItemKey(node, "selected_depth", depth)
 
             selected = (
                 self.session.query(GeselecteerdeProfielen)
