@@ -1,10 +1,31 @@
 import datetime
 import logging
 from collections import OrderedDict
-from qgis.PyQt.QtCore import QMetaObject, QSize, Qt, pyqtSignal, QVariant, QSortFilterProxyModel
-from qgis.PyQt.QtWidgets import (QApplication, QComboBox, QDockWidget, QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit,
-                                 QPushButton, QSizePolicy, QSpacerItem, QTabWidget, QVBoxLayout, QWidget, QCompleter,
-                                 QAbstractItemView)
+from qgis.PyQt.QtCore import (
+    QMetaObject,
+    QSize,
+    Qt,
+    pyqtSignal,
+    QVariant,
+    QSortFilterProxyModel,
+)
+from qgis.PyQt.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QDockWidget,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+    QCompleter,
+    QAbstractItemView,
+)
 from qgis._core import QgsFields
 from qgis._gui import QgsMapToolIdentifyFeature, QgsMapToolIdentify
 from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsField, QgsPointXY
@@ -14,7 +35,12 @@ from PyQt5.QtWidgets import QSplitter
 from legger.qt_models.area_tree import AreaTreeItem, AreaTreeModel, area_class
 from legger.qt_models.legger_tree import LeggerTreeItem, LeggerTreeModel
 from legger.qt_models.profile import ProfileModel
-from legger.sql_models.legger import (BegroeiingsVariant, GeselecteerdeProfielen, HydroObject, Varianten)
+from legger.sql_models.legger import (
+    BegroeiingsVariant,
+    GeselecteerdeProfielen,
+    HydroObject,
+    Varianten,
+)
 from legger.sql_models.legger_database import LeggerDatabase, load_spatialite
 from legger.utils.formats import try_round
 from legger.utils.legger_map_manager import LeggerMapManager
@@ -27,29 +53,34 @@ from legger.views.kijk_legger_popup import KijkProfielPopup
 from sqlalchemy import and_, or_
 
 from .network_graph_widgets import LeggerPlotWidget, LeggerSideViewPlotWidget
-from .network_table_widgets import LeggerTreeWidget, StartpointTreeWidget, VariantenTable
+from .network_table_widgets import (
+    LeggerTreeWidget,
+    StartpointTreeWidget,
+    VariantenTable,
+)
 
-log = logging.getLogger('legger.' + __name__)
+log = logging.getLogger("legger." + __name__)
 
 precision = 0.000001
 
 try:
     _encoding = QApplication.UnicodeUTF8
 
-
     def _translate(context, text, disambig):
         return QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
+
     def _translate(context, text, disambig):
         return QApplication.translate(context, text, disambig)
 
-SHOW_ALL = 'alle'
-PRE_SELECTED = 'opgegeven'
-STANDARD = 'standaard'
 
-STRATEGY_THIS = 'dit hydrovak'
-STRATEGY_DONWSTREAM_ALL = 'benedenstr. altijd'
-STRATEGY_DONWSTREAM_LESS = 'benedenstr. of meer'
+SHOW_ALL = "alle"
+PRE_SELECTED = "opgegeven"
+STANDARD = "standaard"
+
+STRATEGY_THIS = "dit hydrovak"
+STRATEGY_DONWSTREAM_ALL = "benedenstr. altijd"
+STRATEGY_DONWSTREAM_LESS = "benedenstr. of meer"
 
 
 class ExtendedCombo(QComboBox):
@@ -105,7 +136,9 @@ class clickTool(QgsMapToolIdentifyFeature):
         self.onClick = onClick
 
     def canvasPressEvent(self, event):
-        found_features = self.identify(event.x(), event.y(), [self.layer], QgsMapToolIdentify.TopDownAll)
+        found_features = self.identify(
+            event.x(), event.y(), [self.layer], QgsMapToolIdentify.TopDownAll
+        )
         if found_features and len(found_features) > 0:
             self.onClick(found_features)
 
@@ -120,17 +153,19 @@ def interpolated_color(value, color_map, alpha=255):
             else:
                 prev = color_map[i - 1]
                 fraction = (value - prev[0]) / (cm[0] - prev[0])
-                return [p * (1 - fraction) + n * fraction for p, n in zip(prev[1], cm[1])] + [alpha]
+                return [
+                    p * (1 - fraction) + n * fraction for p, n in zip(prev[1], cm[1])
+                ] + [alpha]
     return list(color_map[-1][1]) + [alpha]
 
 
 class LeggerWidget(QDockWidget):
     """Main Legger Network widget with:
-     - tree tables;
-     - crosssection;
-     - sideview; and
-     - legger profile selection
-     """
+    - tree tables;
+    - crosssection;
+    - sideview; and
+    - legger profile selection
+    """
 
     closingWidget = pyqtSignal()
 
@@ -138,7 +173,7 @@ class LeggerWidget(QDockWidget):
         """Constructor."""
         super(LeggerWidget, self).__init__(parent)
 
-        log.warning('starting: init LeggerWidget')
+        log.warning("starting: init LeggerWidget")
         # store arguments
         self.iface = iface
         self.path_legger_db = path_legger_db
@@ -153,20 +188,22 @@ class LeggerWidget(QDockWidget):
         self.area_model = AreaTreeModel()
 
         if not path_legger_db:
-            messagebar_message("Database selectie", "Selecteer eerst een legger database", level=1)
+            messagebar_message(
+                "Database selectie", "Selecteer eerst een legger database", level=1
+            )
             raise Exception("Selecteer eerst een legger database")
 
         # create session (before setup_ui)
-        db = LeggerDatabase(
-            path_legger_db
-        )
-        log.warning('starting: get session')
+        db = LeggerDatabase(path_legger_db)
+        log.warning("starting: get session")
         self.session = db.get_session()
         # todo: request something to test connection and through error message otherwise
         hydro_object_count = self.session.query(HydroObject).count()
 
         if hydro_object_count == 0:
-            messagebar_message("Database selectie", "Database bevat geen hydrovakken", level=1)
+            messagebar_message(
+                "Database selectie", "Database bevat geen hydrovakken", level=1
+            )
             raise Exception("Database bevat geen hydrovakken")
 
         # initial values
@@ -175,45 +212,56 @@ class LeggerWidget(QDockWidget):
         self.active_begroeiings_variant_strategy = None
 
         # setup ui
-        log.warning('starting: setup ui')
+        log.warning("starting: setup ui")
         self.setup_ui(self)
 
-        log.info('starting: set data and models for ui')
+        log.info("starting: set data and models for ui")
         self.legger_model.setTreeWidget(self.legger_tree_widget)
         self.area_model.setTreeWidget(self.startpoint_tree_widget)
 
-        self.category_combo.insertItems(0, ['4', '3', '2', '1'])
+        self.category_combo.insertItems(0, ["4", "3", "2", "1"])
         self.category_combo.setCurrentIndex(0)
         self.category_filter = 4
 
         self.begroeiings_varianten = OrderedDict(
-            [(SHOW_ALL, 'all'), (STANDARD, 'standard'), (PRE_SELECTED, 'pre_selected'), ] +
-            [(v.naam, v) for v in self.session.query(BegroeiingsVariant)]
+            [
+                (SHOW_ALL, "all"),
+                (STANDARD, "standard"),
+                (PRE_SELECTED, "pre_selected"),
+            ]
+            + [(v.naam, v) for v in self.session.query(BegroeiingsVariant)]
         )
 
-        self.begroeiings_combo.insertItems(
-            0, self.begroeiings_varianten.keys())
+        self.begroeiings_combo.insertItems(0, self.begroeiings_varianten.keys())
 
-        self.begroeiings_variant_strategies = OrderedDict((
-            ('alle bovenstroomse hydrovakken', 'all_upstream'),
-            ('alleen dit hydrovak', 'only_this_hydrovak'),
-        ))
+        self.begroeiings_variant_strategies = OrderedDict(
+            (
+                ("alle bovenstroomse hydrovakken", "all_upstream"),
+                ("alleen dit hydrovak", "only_this_hydrovak"),
+            )
+        )
 
-        self.begroeiings_strategy_combo.insertItems(0, self.begroeiings_variant_strategies.keys())
+        self.begroeiings_strategy_combo.insertItems(
+            0, self.begroeiings_variant_strategies.keys()
+        )
         self.begroeiings_strategy_combo.setCurrentIndex(0)
 
-        self.child_selection_strategies = OrderedDict((
-            ('gekozen traject tot waarde', 'selected_branch_till_value'),
-            ('gekozen traject tot eind', 'selected_branch_till_end'),
-            ('alleen dit hydrovak', 'selected_hydrovak'),
-            ('bovenstrooms (met zijtakken) tot waarde ', 'upstream_till_value'),
-            ('bovenstrooms (met zijtakken) tot eind', 'upstream_till_end'),
-        ))
+        self.child_selection_strategies = OrderedDict(
+            (
+                ("gekozen traject tot waarde", "selected_branch_till_value"),
+                ("gekozen traject tot eind", "selected_branch_till_end"),
+                ("alleen dit hydrovak", "selected_hydrovak"),
+                ("bovenstrooms (met zijtakken) tot waarde ", "upstream_till_value"),
+                ("bovenstrooms (met zijtakken) tot eind", "upstream_till_end"),
+            )
+        )
 
-        self.child_selection_strategy_combo.insertItems(0, self.child_selection_strategies.keys())
+        self.child_selection_strategy_combo.insertItems(
+            0, self.child_selection_strategies.keys()
+        )
         self.child_selection_strategy_combo.setCurrentIndex(0)
 
-        log.warning('starting: create line layer and add to map')
+        log.warning("starting: create line layer and add to map")
         # create line layer and add to map
         self.layer_manager = LeggerMapManager(self.iface, self.path_legger_db)
 
@@ -224,13 +272,16 @@ class LeggerWidget(QDockWidget):
         self.vl_track_layer = self.layer_manager.get_track_layer(add_to_map=True)
         self.vl_hover_layer = self.layer_manager.get_hover_layer(add_to_map=True)
         self.vl_selected_layer = self.layer_manager.get_selected_layer(add_to_map=True)
-        self.vl_startpoint_hover_layer = self.layer_manager.get_hover_startpoint_layer(add_to_map=True)
+        self.vl_startpoint_hover_layer = self.layer_manager.get_hover_startpoint_layer(
+            add_to_map=True
+        )
 
-        log.warning('starting: map_visualisation')
+        log.warning("starting: map_visualisation")
         self.map_visualisation = LeggerMapVisualisation(
-            self.iface, self.line_layer.crs())
+            self.iface, self.line_layer.crs()
+        )
 
-        log.warning('starting: clickTool')
+        log.warning("starting: clickTool")
         self.clickTool = clickTool(iface, self.line_layer, self.onMapClick)
         self.click_tool_active = False
         self.last_map_tool = None
@@ -241,24 +292,28 @@ class LeggerWidget(QDockWidget):
         # director = QgsVectorLayerDirector(
         #     line_direct, field_nr, '2', '1', '3', 3)
 
-        log.warning('starting: init network')
+        log.warning("starting: init network")
         # this is where the data is read
         self.network = Network(
             spatialite_path=path_legger_db,
             full_line_layer=self.line_layer,
             virtual_tree_layer=self.vl_tree_layer,
-            endpoint_layer=self.vl_endpoint_layer
+            endpoint_layer=self.vl_endpoint_layer,
         )
-        log.warning('starting: add listeners')
+        log.warning("starting: add listeners")
         # add listeners
         self.category_combo.currentIndexChanged.connect(self.category_change)
         self.variant_model.dataChanged.connect(self.data_changed_variant)
         self.legger_model.dataChanged.connect(self.data_changed_legger_tree)
         self.area_model.dataChanged.connect(self.data_changed_area_model)
         self.show_manual_input_button.clicked.connect(self.show_manual_input_window)
-        self.show_edit_manual_input_button.clicked.connect(self.show_edit_manual_input_window)
+        self.show_edit_manual_input_button.clicked.connect(
+            self.show_edit_manual_input_window
+        )
         self.next_endpoint_button.clicked.connect(self.set_next_endpoint)
-        self.begroeiings_combo.currentIndexChanged.connect(self.onSelectBegroeiingsVariant)
+        self.begroeiings_combo.currentIndexChanged.connect(
+            self.onSelectBegroeiingsVariant
+        )
         self.search_hydrovak.currentIndexChanged.connect(self.search_hydrovak_combo)
         self.map_search_button.clicked.connect(self.toggleMapTool)
         self.undo_button.clicked.connect(self.do_undo)
@@ -272,13 +327,13 @@ class LeggerWidget(QDockWidget):
 
         # create and init startpoint (AreaTree) model
         def loop_over(parent, data):
-            for child in data['children']:
+            for child in data["children"]:
                 area = area_class(child)
                 item = AreaTreeItem(area, parent)
                 parent.appendChild(item)
                 loop_over(item, child)
 
-        log.warning('starting: get startingpoints and select first')
+        log.warning("starting: get startingpoints and select first")
         # get startingpoints and select first
         sp_tree = self.network.get_start_arc_tree()
 
@@ -286,15 +341,15 @@ class LeggerWidget(QDockWidget):
         loop_over(root, sp_tree)
         self.area_model.setNewTree(root.childs)
 
-        log.warning('starting: initial, select first area')
+        log.warning("starting: initial, select first area")
         # initial, select first area
         first_area = root.child(0)
-        self.area_model.setDataItemKey(first_area, 'selected', True)
+        self.area_model.setDataItemKey(first_area, "selected", True)
 
         self.hydrovak_model = QStandardItemModel()
-        self.hydrovak_model.appendRow(QStandardItem(''))
+        self.hydrovak_model.appendRow(QStandardItem(""))
         for hline in self.network.arc_tree.values():
-            item = QStandardItem(hline.get('code'))
+            item = QStandardItem(hline.get("code"))
             self.hydrovak_model.appendRow(item)
 
         self.search_hydrovak.setModel(self.hydrovak_model)
@@ -305,7 +360,7 @@ class LeggerWidget(QDockWidget):
         self.init_width = 1.0
         self.init_depth = 0.8
         self.init_talud = 2
-        self.init_reason = ''
+        self.init_reason = ""
         self.selected_hydrovak_db = None
 
         self.change_cache = []
@@ -314,20 +369,18 @@ class LeggerWidget(QDockWidget):
 
         self.in_undo_redo = False
 
-        log.warning('starting: ready init LeggerWidget')
+        log.warning("starting: ready init LeggerWidget")
         return
 
     def onMapClick(self, identifyFeatures):
-
         if len(identifyFeatures):
-            hydro_id = identifyFeatures[0].mFeature.attribute('id')
-            log.info('click on hydro_id: {}'.format(hydro_id))
+            hydro_id = identifyFeatures[0].mFeature.attribute("id")
+            log.info("click on hydro_id: {}".format(hydro_id))
             self.select_hydrovak(hydro_id)
 
     def select_hydrovak(self, hydro_id):
         def find_child(node, line_nr):
-
-            if node.data_item and node.data_item.get('line_nr') == line_nr:
+            if node.data_item and node.data_item.get("line_nr") == line_nr:
                 index = self.area_model.createIndex(node.row(), 0, node)
                 # self.startpoint_tree_widget.setExpanded(index, True)
                 return node
@@ -338,13 +391,13 @@ class LeggerWidget(QDockWidget):
             return None
 
         node = self.legger_model.rootItem.child(0)
-        index = self.legger_model.find_younger(self.legger_model.createIndex(node.row(), 0, node),
-                                               'hydro_id',
-                                               hydro_id)
+        index = self.legger_model.find_younger(
+            self.legger_model.createIndex(node.row(), 0, node), "hydro_id", hydro_id
+        )
         if index:
             self.open_parents_recursive(index)
             node = index.internalPointer()
-            self.legger_model.setDataItemKey(node, 'selected', Qt.Checked)
+            self.legger_model.setDataItemKey(node, "selected", Qt.Checked)
             self.legger_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
 
             if self.click_tool_active:
@@ -357,29 +410,28 @@ class LeggerWidget(QDockWidget):
             if not start_arc:
                 return
             # find child in tree
-            item = find_child(self.area_model.rootItem, start_arc['line_nr'])
+            item = find_child(self.area_model.rootItem, start_arc["line_nr"])
             if not item:
                 return
             index = self.area_model.createIndex(item.row(), 0, item)
 
-            self.area_model.setDataItemKey(item, 'selected', Qt.Checked)
+            self.area_model.setDataItemKey(item, "selected", Qt.Checked)
             self.startpoint_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
 
             node = self.legger_model.rootItem.child(0)
-            index = self.legger_model.find_younger(self.legger_model.createIndex(node.row(), 0, node),
-                                                   'hydro_id',
-                                                   hydro_id)
+            index = self.legger_model.find_younger(
+                self.legger_model.createIndex(node.row(), 0, node), "hydro_id", hydro_id
+            )
             if index:
                 self.open_parents_recursive(index)
                 node = index.internalPointer()
-                self.legger_model.setDataItemKey(node, 'selected', Qt.Checked)
+                self.legger_model.setDataItemKey(node, "selected", Qt.Checked)
                 self.legger_tree_widget.scrollTo(index, QAbstractItemView.EnsureVisible)
 
                 if self.click_tool_active:
                     self.toggleMapTool()
 
     def toggleMapTool(self):
-
         if self.click_tool_active:
             self.iface.mapCanvas().unsetMapTool(self.clickTool)
             self.click_tool_active = False
@@ -406,16 +458,12 @@ class LeggerWidget(QDockWidget):
     def search_hydrovak_combo(self):
         code = self.search_hydrovak.currentText()
         arc = self.network.get_arc_by_hydro_id(code)
-        log.info('search_hydrovak_combo: %s, %s', code, str(arc))
+        log.info("search_hydrovak_combo: %s, %s", code, str(arc))
         if arc:
-            self.select_hydrovak(arc['id'])
+            self.select_hydrovak(arc["id"])
 
     def open_kijkprofiel_dialog(self):
-
-        self._kijkprofiel_popup = KijkProfielPopup(
-            self,
-            self.iface,
-            self)
+        self._kijkprofiel_popup = KijkProfielPopup(self, self.iface, self)
         self._kijkprofiel_popup.show()
 
     def category_change(self, nr):
@@ -440,7 +488,7 @@ class LeggerWidget(QDockWidget):
             return
 
         # get selected variant of hydrovak
-        variant_id = self.legger_model.selected.hydrovak.get('selected_variant_id')
+        variant_id = self.legger_model.selected.hydrovak.get("selected_variant_id")
 
         self._new_window = NewWindow(
             self.legger_model.selected.hydrovak.get("hydro_id"),
@@ -448,7 +496,7 @@ class LeggerWidget(QDockWidget):
             callback_on_save=lambda calc_out: self.update_available_profiles(
                 self.legger_model.selected, calc_out
             ),
-            variant_id=variant_id
+            variant_id=variant_id,
         )
 
         def on_close():
@@ -467,19 +515,21 @@ class LeggerWidget(QDockWidget):
             return
 
         self._new_window = NewWindow(
-            self.legger_model.selected.hydrovak.get('hydro_id'),
+            self.legger_model.selected.hydrovak.get("hydro_id"),
             self.path_legger_db,
-            callback_on_save=lambda calc_out: self.update_available_profiles(self.legger_model.selected, calc_out)
+            callback_on_save=lambda calc_out: self.update_available_profiles(
+                self.legger_model.selected, calc_out
+            ),
         )
 
         def on_close():
             self._new_window.closeSignal.disconnect(on_close)
             self._new_window = None
+
         # connect to destroy event to set reference to null
         self._new_window.closeSignal.connect(on_close)
 
         self._new_window.show()
-
 
     def set_next_endpoint(self):
         """
@@ -490,31 +540,39 @@ class LeggerWidget(QDockWidget):
         """
         sp = self.legger_model.sp
         if sp is None:
-            messagebar_message('Fout',
-                               'Selecteer eerst een startpunt (kolom sp)',
-                               level=1,  # Warning
-                               duration=15)
+            messagebar_message(
+                "Fout",
+                "Selecteer eerst een startpunt (kolom sp)",
+                level=1,  # Warning
+                duration=15,
+            )
             return
 
-        missing_values, endpoint = self.legger_model.find_endpoint_traject_without_legger_profile(sp)
+        missing_values, endpoint = (
+            self.legger_model.find_endpoint_traject_without_legger_profile(sp)
+        )
         if not missing_values or endpoint is None:
-            messagebar_message('Eindpunt selectie',
-                               'Geen traject gevonden met ontbrekende legger',
-                               duration=15)
+            messagebar_message(
+                "Eindpunt selectie",
+                "Geen traject gevonden met ontbrekende legger",
+                duration=15,
+            )
         else:
             self.legger_model.open_till_endpoint(endpoint, close_other=True)
-            self.legger_model.setDataItemKey(endpoint, 'ep', True)
+            self.legger_model.setDataItemKey(endpoint, "ep", True)
 
-    def loop_tree(self,
-                  node,
-                  depth=None,
-                  initial=False,
-                  hover=False,
-                  begroeiingsvariant=None,
-                  variant_id=None,
-                  child_strategy='selected_branch_till_value',
-                  begroeiings_strategy='pre_selected',
-                  traject_nodes=None):
+    def loop_tree(
+        self,
+        node,
+        depth=None,
+        initial=False,
+        hover=False,
+        begroeiingsvariant=None,
+        variant_id=None,
+        child_strategy="selected_branch_till_value",
+        begroeiings_strategy="pre_selected",
+        traject_nodes=None,
+    ):
         """
         recursive loop over younger items where depth can be applied according to
         available profiles
@@ -539,53 +597,75 @@ class LeggerWidget(QDockWidget):
 
         output_hydrovakken = [node]
         if initial:
-            variant_id = node.hydrovak.get('selected_variant_id')
-            depth = node.hydrovak.get('selected_depth')
-        elif (variant_id is None and child_strategy in ['selected_branch_till_value', 'upstream_till_value'] and
-              node.hydrovak.get('selected_variant_id')):
+            variant_id = node.hydrovak.get("selected_variant_id")
+            depth = node.hydrovak.get("selected_depth")
+        elif (
+            variant_id is None
+            and child_strategy in ["selected_branch_till_value", "upstream_till_value"]
+            and node.hydrovak.get("selected_variant_id")
+        ):
             # stop here, already value there
             return
 
         did_select_depth = False
         if initial and variant_id is None:
             pass
-        elif node.hydrovak['variant_min_depth'] is None or node.hydrovak.get('soort_vak') in [3, 4]:
+        elif node.hydrovak["variant_min_depth"] is None or node.hydrovak.get(
+            "soort_vak"
+        ) in [3, 4]:
             # no variants available, so skip this one and continue downstream
             # pseudovak or structure, continue downstream
             pass
         else:
             # get selected variant. if variant_id is None, try based on depth and begroeiingsvariant
             if variant_id is not None:
-                profile_variant = self.session.query(Varianten).filter(Varianten.id == variant_id)
-                if begroeiingsvariant is None or begroeiingsvariant == 'all' and profile_variant.count():
+                profile_variant = self.session.query(Varianten).filter(
+                    Varianten.id == variant_id
+                )
+                if (
+                    begroeiingsvariant is None
+                    or begroeiingsvariant == "all"
+                    and profile_variant.count()
+                ):
                     begroeiingsvariant = profile_variant[0].begroeiingsvariant_id
             else:
                 # use given begroeiingsvariant if stategy is all_upstream otherwise use begroeiingsgraad
                 # set on hydrovak or the default begroeiingsgraad
                 # (correct begroeiingsvariant of first hydrovak is selected by setting variant_id)
                 #  "type(begroeiingsvariant) != str" is to filter out setting 'all'
-                if begroeiings_strategy == 'all_upstream' and begroeiingsvariant is not None and type(
-                        begroeiingsvariant) != str:
+                if (
+                    begroeiings_strategy == "all_upstream"
+                    and begroeiingsvariant is not None
+                    and type(begroeiingsvariant) != str
+                ):
                     if type(begroeiingsvariant) == int:
                         begroeiingsvariant_int = begroeiingsvariant
                     else:
                         begroeiingsvariant_int = begroeiingsvariant.id
 
                     profile_variant = self.session.query(Varianten).filter(
-                        Varianten.hydro_id == node.hydrovak.get('hydro_id'),
+                        Varianten.hydro_id == node.hydrovak.get("hydro_id"),
                         Varianten.begroeiingsvariant_id.like(begroeiingsvariant_int),
                         Varianten.diepte < depth + precision,
-                        Varianten.diepte > depth - precision
+                        Varianten.diepte > depth - precision,
                     )
                 else:
                     profile_variant = self.session.query(Varianten).filter(
-                        Varianten.hydro_id == node.hydrovak.get('hydro_id'),
-                        or_(Varianten.hydro.has(
-                            HydroObject.begroeiingsvariant_id == Varianten.begroeiingsvariant_id),
-                            and_(Varianten.hydro.has(HydroObject.begroeiingsvariant_id == None),
-                                 Varianten.begroeiingsvariant.has(is_default=True))),
+                        Varianten.hydro_id == node.hydrovak.get("hydro_id"),
+                        or_(
+                            Varianten.hydro.has(
+                                HydroObject.begroeiingsvariant_id
+                                == Varianten.begroeiingsvariant_id
+                            ),
+                            and_(
+                                Varianten.hydro.has(
+                                    HydroObject.begroeiingsvariant_id == None
+                                ),
+                                Varianten.begroeiingsvariant.has(is_default=True),
+                            ),
+                        ),
                         Varianten.diepte < depth + precision,
-                        Varianten.diepte > depth - precision
+                        Varianten.diepte > depth - precision,
                     )
 
             profile_variants = profile_variant.all()
@@ -594,15 +674,22 @@ class LeggerWidget(QDockWidget):
             if profile_variant_count > 0:
                 if hover:
                     # self.legger_model.setDataItemKey(node, 'sel d', depth)
-                    self.legger_model.setDataItemKey(node, 'selected_depth_tmp', depth)
+                    self.legger_model.setDataItemKey(node, "selected_depth_tmp", depth)
                     did_select_depth = True
                 else:
                     # get all info to display in legger table
-                    over_depth = node.hydrovak.get('depth') - depth if node.hydrovak.get('depth') is not None else None
+                    over_depth = (
+                        node.hydrovak.get("depth") - depth
+                        if node.hydrovak.get("depth") is not None
+                        else None
+                    )
                     profilev = profile_variants[0]
                     width = profilev.waterbreedte
-                    over_width = node.hydrovak.get('width') - width \
-                        if node.hydrovak.get('width') is not None else None
+                    over_width = (
+                        node.hydrovak.get("width") - width
+                        if node.hydrovak.get("width") is not None
+                        else None
+                    )
 
                     figuren = profilev.figuren
                     score = None
@@ -613,49 +700,69 @@ class LeggerWidget(QDockWidget):
                         score = "{0:.2f}".format(figuur.t_fit)
                         # over_depth = "{0:.2f}".format(
                         #     figuur.t_overdiepte) if figuur.t_overdiepte is not None else over_depth
-                    over_depth = "{}".format(try_round(over_depth, 2, '-'))
-                    over_width = "{}".format(try_round(over_width, 2, '-'))
+                    over_depth = "{}".format(try_round(over_depth, 2, "-"))
+                    over_width = "{}".format(try_round(over_width, 2, "-"))
 
-                    verhang = try_round(profilev.verhang, 1, '-')
-                    verhang_inlaat = try_round(profilev.verhang_inlaat, 1, '-')
-                    self.legger_model.setDataItemKey(node, 'selected_depth', depth)
-                    self.legger_model.setDataItemKey(node, 'selected_width', width)
-                    self.legger_model.setDataItemKey(node, 'selected_variant_id', profilev.id)
-                    self.legger_model.setDataItemKey(node, 'selected_begroeiingsvariant_id',
-                                                     profilev.begroeiingsvariant_id)
-                    self.legger_model.setDataItemKey(node, 'verhang', verhang)
-                    self.legger_model.setDataItemKey(node, 'verhang_inlaat', verhang_inlaat)
-                    self.legger_model.setDataItemKey(node, 'score', score)
-                    self.legger_model.setDataItemKey(node, 'over_depth', over_depth)
-                    self.legger_model.setDataItemKey(node, 'over_width', over_width)
+                    verhang = try_round(profilev.verhang, 1, "-")
+                    verhang_inlaat = try_round(profilev.verhang_inlaat, 1, "-")
+                    self.legger_model.setDataItemKey(node, "selected_depth", depth)
+                    self.legger_model.setDataItemKey(node, "selected_width", width)
+                    self.legger_model.setDataItemKey(
+                        node, "selected_variant_id", profilev.id
+                    )
+                    self.legger_model.setDataItemKey(
+                        node,
+                        "selected_begroeiingsvariant_id",
+                        profilev.begroeiingsvariant_id,
+                    )
+                    self.legger_model.setDataItemKey(node, "verhang", verhang)
+                    self.legger_model.setDataItemKey(
+                        node, "verhang_inlaat", verhang_inlaat
+                    )
+                    self.legger_model.setDataItemKey(node, "score", score)
+                    self.legger_model.setDataItemKey(node, "over_depth", over_depth)
+                    self.legger_model.setDataItemKey(node, "over_width", over_width)
 
                     if not initial:
                         change = {}
-                        # save selected variant
-                        selected = self.session.query(GeselecteerdeProfielen).filter(
-                            GeselecteerdeProfielen.hydro_id == node.hydrovak.get('hydro_id')).first()
+                        # get current variant (old
+                        selected = (
+                            self.session.query(GeselecteerdeProfielen)
+                            .filter(
+                                GeselecteerdeProfielen.hydro_id
+                                == node.hydrovak.get("hydro_id")
+                            )
+                            .first()
+                        )
 
-                        change['hydro_id'] = node.hydrovak.get('hydro_id')
+                        change["hydro_id"] = node.hydrovak.get("hydro_id")
+
+                        change["new"] = {
+                            "variant_id": profilev.id,
+                            "selected_on": datetime.datetime.now(),
+                        }
 
                         if selected:
-                            change['old'] = {
-                                'variant_id': selected.variant_id,
-                                'selected_on': selected.selected_on,
+                            change["old"] = {
+                                "variant_id": selected.variant_id,
+                                "selected_on": selected.selected_on,
                             }
+                            # update selected to new variant
                             selected.variant = profilev
                             selected.selected_on = datetime.datetime.now()
                         else:
                             # nieuw
-                            change['old_variant'] = None
+                            change["old"] = {
+                                "variant_id": None,
+                                "selected_on": None,
+                            }
+
+                            # create new selected profile
                             selected = GeselecteerdeProfielen(
-                                hydro_id=node.hydrovak.get('hydro_id'),
+                                hydro_id=node.hydrovak.get("hydro_id"),
                                 variant_id=profilev.id,
                                 selected_on=datetime.datetime.now(),
                             )
-                        change["new"] = {
-                            "variant_id": selected.variant.id,
-                            "selected_on": selected.selected_on,
-                        }
 
                         self.session.add(selected)
                         self.change_cache.append(change)
@@ -663,9 +770,9 @@ class LeggerWidget(QDockWidget):
                 # no variant which fits criteria. stop iteration here
                 return
 
-        if begroeiings_strategy == 'only_this_hydrovak':
+        if begroeiings_strategy == "only_this_hydrovak":
             begroeiingsvariant = None
-        elif begroeiings_strategy == 'all_upstream':
+        elif begroeiings_strategy == "all_upstream":
             # keep variant as it is
             pass
         # elif begroeiings_strategy == 'minimum':
@@ -673,9 +780,9 @@ class LeggerWidget(QDockWidget):
         # elif begroeiings_strategy == 'maximum':
         #     pass
 
-        if child_strategy == 'selected_hydrovak':
+        if child_strategy == "selected_hydrovak":
             loop_childs = []
-        elif child_strategy in ['upstream_till_value', 'upstream_till_end'] or initial:
+        elif child_strategy in ["upstream_till_value", "upstream_till_end"] or initial:
             loop_childs = node.younger()
         else:  # 'selected_branch_till_value', 'selected_branch_till_end'
             if traject_nodes is None or len(traject_nodes) == 0:
@@ -709,19 +816,18 @@ class LeggerWidget(QDockWidget):
         # activate draw
         node = self.legger_model.data(index, role=Qt.UserRole)
 
-        if self.legger_model.columns[index.column()].get('field') == 'hover':
+        if self.legger_model.columns[index.column()].get("field") == "hover":
             ids = [feat.id() for feat in self.vl_hover_layer.getFeatures()]
             self.vl_hover_layer.dataProvider().deleteFeatures(ids)
 
-            if node.hydrovak.get('hover'):
+            if node.hydrovak.get("hover"):
                 features = []
 
                 feat = QgsFeature()
-                feat.setGeometry(node.hydrovak.get('feature').geometry())
+                feat.setGeometry(node.hydrovak.get("feature").geometry())
 
                 try:
-                    feat.setAttributes([
-                        node.hydrovak.get('feature')['id']])
+                    feat.setAttributes([node.hydrovak.get("feature")["id"]])
 
                     features.append(feat)
                     self.vl_hover_layer.dataProvider().addFeatures(features)
@@ -732,30 +838,31 @@ class LeggerWidget(QDockWidget):
             self.vl_hover_layer.updateExtents()
             self.vl_hover_layer.triggerRepaint()
 
-        elif self.legger_model.columns[index.column()].get('field') == 'selected':
+        elif self.legger_model.columns[index.column()].get("field") == "selected":
             if self.legger_model.data(index, role=Qt.CheckStateRole) == Qt.Unchecked:
                 self.save_remarks()
 
                 if self._new_window is not None:
                     self._new_window.close()
-                self.selected_variant_remark.setPlainText('')
+                self.selected_variant_remark.setPlainText("")
                 self.selected_variant_remark.setDisabled(True)
                 self.kijk_variant_knop.setDisabled(True)
 
                 ids = [feat.id() for feat in self.vl_selected_layer.getFeatures()]
                 self.vl_selected_layer.dataProvider().deleteFeatures(ids)
 
-            if node.hydrovak.get('selected'):
-                if node.hydrovak.get('tak'):
-                    self.legger_model.setDataItemKey(node.younger()[1], 'selected', Qt.Checked)
+            if node.hydrovak.get("selected"):
+                if node.hydrovak.get("tak"):
+                    self.legger_model.setDataItemKey(
+                        node.younger()[1], "selected", Qt.Checked
+                    )
                 else:
                     features = []
 
                     feat = QgsFeature()
-                    feat.setGeometry(node.hydrovak.get('feature').geometry())
+                    feat.setGeometry(node.hydrovak.get("feature").geometry())
 
-                    feat.setAttributes([
-                        node.hydrovak.get('feature')['id']])
+                    feat.setAttributes([node.hydrovak.get("feature")["id"]])
 
                     features.append(feat)
                     self.vl_selected_layer.dataProvider().addFeatures(features)
@@ -764,21 +871,26 @@ class LeggerWidget(QDockWidget):
             self.vl_selected_layer.updateExtents()
             self.vl_selected_layer.triggerRepaint()
 
-            if node.hydrovak.get('tak'):
+            if node.hydrovak.get("tak"):
                 pass
-            elif node.hydrovak.get('selected'):
-                self.on_select_edit_hydrovak(self.legger_model.data(index, role=Qt.UserRole))
+            elif node.hydrovak.get("selected"):
+                self.on_select_edit_hydrovak(
+                    self.legger_model.data(index, role=Qt.UserRole)
+                )
                 self.show_manual_input_button.setDisabled(False)
-                if node.hydrovak.get('selected_variant_id'):
+                if node.hydrovak.get("selected_variant_id"):
                     self.show_edit_manual_input_button.setDisabled(False)
 
-            elif (self.legger_model.selected is None or
-                  self.legger_model.data(index, role=Qt.UserRole) == self.legger_model.selected):
+            elif (
+                self.legger_model.selected is None
+                or self.legger_model.data(index, role=Qt.UserRole)
+                == self.legger_model.selected
+            ):
                 self.variant_model.removeRows(0, len(self.variant_model.rows))
                 self.show_manual_input_button.setDisabled(True)
                 self.show_edit_manual_input_button.setDisabled(True)
 
-        elif self.legger_model.columns[index.column()].get('field') in ['ep', 'sp']:
+        elif self.legger_model.columns[index.column()].get("field") in ["ep", "sp"]:
             # clear current track
             if self.legger_model.sp is None or self.legger_model.ep is None:
                 self.track_nodes = []
@@ -787,11 +899,15 @@ class LeggerWidget(QDockWidget):
                 self.vl_track_layer.dataProvider().deleteFeatures(ids)
                 self.vl_track_layer.commitChanges()
                 self.vl_track_layer.triggerRepaint()
-            elif node.hydrovak.get('tak'):
-                if self.legger_model.columns[index.column()].get('field') == 'ep':
-                    self.legger_model.setDataItemKey(node.younger()[1], 'ep', Qt.Checked)
-                if self.legger_model.columns[index.column()].get('field') == 'sp':
-                    self.legger_model.setDataItemKey(node.younger()[1], 'sp', Qt.Checked)
+            elif node.hydrovak.get("tak"):
+                if self.legger_model.columns[index.column()].get("field") == "ep":
+                    self.legger_model.setDataItemKey(
+                        node.younger()[1], "ep", Qt.Checked
+                    )
+                if self.legger_model.columns[index.column()].get("field") == "sp":
+                    self.legger_model.setDataItemKey(
+                        node.younger()[1], "sp", Qt.Checked
+                    )
             elif self.legger_model.sp and self.legger_model.ep:
                 features = []
                 nodes = []
@@ -800,13 +916,13 @@ class LeggerWidget(QDockWidget):
                 fields.append(QgsField("id", QVariant.Int))
 
                 def loop_rec(node):
-                    if node.hydrovak.get('tak'):
+                    if node.hydrovak.get("tak"):
                         node = node.older()
                     else:
                         feat = QgsFeature(fields)
-                        feat.setGeometry(node.hydrovak.get('feature').geometry())
+                        feat.setGeometry(node.hydrovak.get("feature").geometry())
 
-                        feat.setAttributes([node.hydrovak.get('feature')['id']])
+                        feat.setAttributes([node.hydrovak.get("feature")["id"]])
 
                         features.append(feat)
                         nodes.append(node)
@@ -834,22 +950,22 @@ class LeggerWidget(QDockWidget):
         index (QIndex): index of changed field
         """
 
-        if self.area_model.columns[index.column()].get('field') == 'selected':
+        if self.area_model.columns[index.column()].get("field") == "selected":
             # clear display elements
 
             if self.area_model.data(index, role=Qt.CheckStateRole) == Qt.Checked:
                 self.variant_model.removeRows(0, len(self.variant_model.rows))
-                self.legger_model.set_column_value('hover', False)
-                self.legger_model.set_column_value('selected', False)
-                self.legger_model.set_column_value('ep', False)
-                self.legger_model.set_column_value('sp', False)
+                self.legger_model.set_column_value("hover", False)
+                self.legger_model.set_column_value("selected", False)
+                self.legger_model.set_column_value("ep", False)
+                self.legger_model.set_column_value("sp", False)
 
                 if self._new_window is not None:
                     self._new_window.close()
 
                 area_item = self.area_model.data(index, role=Qt.UserRole)
 
-                self.network.set_tree_start_arc(area_item.area.get('line_nr'))
+                self.network.set_tree_start_arc(area_item.area.get("line_nr"))
 
                 self.legger_model.clear()
 
@@ -865,7 +981,7 @@ class LeggerWidget(QDockWidget):
                 if extent:
                     extent.scale(1.2)
                     canvas.setExtent(extent)
-        elif self.area_model.columns[index.column()].get('field') == 'hover':
+        elif self.area_model.columns[index.column()].get("field") == "hover":
             ids = [feat.id() for feat in self.vl_startpoint_hover_layer.getFeatures()]
             self.vl_startpoint_hover_layer.dataProvider().deleteFeatures(ids)
 
@@ -877,9 +993,10 @@ class LeggerWidget(QDockWidget):
                 node = self.area_model.data(index, role=Qt.UserRole)
                 feat = QgsFeature()
 
-                feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*node.area.get('point'))))
-                feat.setAttributes([
-                    node.area.get('vertex_id')])
+                feat.setGeometry(
+                    QgsGeometry.fromPointXY(QgsPointXY(*node.area.get("point")))
+                )
+                feat.setAttributes([node.area.get("vertex_id")])
                 features.append(feat)
 
                 self.vl_startpoint_hover_layer.dataProvider().addFeatures(features)
@@ -895,7 +1012,7 @@ class LeggerWidget(QDockWidget):
         index (QIndex): index of changed field
         """
         item = self.variant_model.rows[index.row()]
-        if self.variant_model.columns[index.column()].name == 'active':
+        if self.variant_model.columns[index.column()].name == "active":
             if item.active.value:
                 self.show_edit_manual_input_button.setDisabled(False)
 
@@ -925,13 +1042,17 @@ class LeggerWidget(QDockWidget):
                     if len(traject) > 0:
                         traject.pop(0)
                 else:
-                    if child_strategy in ['selected_branch_till_value', 'selected_branch_till_end']:
+                    if child_strategy in [
+                        "selected_branch_till_value",
+                        "selected_branch_till_end",
+                    ]:
                         messagebar_message(
-                            'Traject nodig',
-                            'Selecteer eerst een traject (sp en ep) voordat diepte kan worden doorgetrokken.',
+                            "Traject nodig",
+                            "Selecteer eerst een traject (sp en ep) voordat diepte kan worden doorgetrokken.",
                             1,
-                            15)
-                        child_strategy = 'selected_hydrovak'
+                            15,
+                        )
+                        child_strategy = "selected_hydrovak"
 
                 self.loop_tree(
                     self.legger_model.selected,
@@ -941,7 +1062,7 @@ class LeggerWidget(QDockWidget):
                     begroeiingsvariant=self.get_begroeiings_variant(),
                     child_strategy=child_strategy,
                     begroeiings_strategy=self.get_begroeiings_strategy(),
-                    traject_nodes=traject
+                    traject_nodes=traject,
                 )
                 self.session.commit()
                 # todo: logic for when session.commit raise an error?!
@@ -949,26 +1070,29 @@ class LeggerWidget(QDockWidget):
 
                 # remove old redo options
                 if len(self.change_array) > self.current_change_nr:
-                    self.change_array = self.change_array[:self.current_change_nr]
+                    self.change_array = self.change_array[: self.current_change_nr]
 
                 self.current_change_nr = len(self.change_array) + 1
-                self.change_array.append({
-                    "nr": self.current_change_nr,
-                    "changes": self.change_cache
-                })
+                self.change_array.append(
+                    {"nr": self.current_change_nr, "changes": self.change_cache}
+                )
                 self.change_cache = []
                 # todo: update here the cumulative slope calculation
 
                 # trigger repaint of sideview
-                self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+                self.sideview_widget.draw_selected_lines(
+                    self.sideview_widget._get_data()
+                )
                 self.update_undo_buttons()
             else:
                 # self.show_edit_manual_input_button.setDisabled(True)
                 item.color.value = list(item.color.value)[:3] + [20]
                 # trigger repaint of sideview
-                self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+                self.sideview_widget.draw_selected_lines(
+                    self.sideview_widget._get_data()
+                )
 
-        elif self.variant_model.columns[index.column()].name == 'hover':
+        elif self.variant_model.columns[index.column()].name == "hover":
             if item.hover.value:
                 # only one selected at the time
                 item.color.value = list(item.color.value)[:3] + [255]
@@ -979,7 +1103,7 @@ class LeggerWidget(QDockWidget):
                 depth = item.depth.value
                 selected_variant_id = item.name.value
                 traject = []
-                self.legger_model.set_column_value('selected_depth_tmp', None)
+                self.legger_model.set_column_value("selected_depth_tmp", None)
 
                 if self.legger_model.ep:
                     traject = self.legger_model.ep.up(self.legger_model.selected)
@@ -989,10 +1113,11 @@ class LeggerWidget(QDockWidget):
 
                 else:
                     messagebar_message(
-                        'Traject nodig',
-                        'Selecteer eerst een traject (sp en ep) voordat diepte kan worden doorgetrokken.',
+                        "Traject nodig",
+                        "Selecteer eerst een traject (sp en ep) voordat diepte kan worden doorgetrokken.",
                         1,
-                        15)
+                        15,
+                    )
                     return
 
                 hydrovakken = self.loop_tree(
@@ -1004,21 +1129,32 @@ class LeggerWidget(QDockWidget):
                     begroeiingsvariant=self.get_begroeiings_variant(),
                     child_strategy=self.get_child_selection_strategy(),
                     begroeiings_strategy=self.get_begroeiings_strategy(),
-                    traject_nodes=traject
+                    traject_nodes=traject,
                 )
 
                 # set map visualisation of selected hydrovakken
                 self.network._virtual_tree_layer.setSubsetString(
-                    '"hydro_id" in (\'{ids}\')'.format(
-                        ids='\',\''.join([str(hydrovak.hydrovak['hydro_id']) for hydrovak in hydrovakken])))
+                    "\"hydro_id\" in ('{ids}')".format(
+                        ids="','".join(
+                            [
+                                str(hydrovak.hydrovak["hydro_id"])
+                                for hydrovak in hydrovakken
+                            ]
+                        )
+                    )
+                )
                 # trigger repaint of sideview
-                self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+                self.sideview_widget.draw_selected_lines(
+                    self.sideview_widget._get_data()
+                )
             else:
-                self.legger_model.set_column_value('selected_depth_tmp', None)
+                self.legger_model.set_column_value("selected_depth_tmp", None)
                 # reset map visualisation
-                self.network._virtual_tree_layer.setSubsetString('')
+                self.network._virtual_tree_layer.setSubsetString("")
                 # trigger repaint of sideview
-                self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+                self.sideview_widget.draw_selected_lines(
+                    self.sideview_widget._get_data()
+                )
 
     def on_select_edit_hydrovak(self, item):
         """
@@ -1028,9 +1164,13 @@ class LeggerWidget(QDockWidget):
         return: -
         """
 
-        hydro_object = self.session.query(HydroObject).filter_by(id=item.hydrovak.get('hydro_id')).first()
+        hydro_object = (
+            self.session.query(HydroObject)
+            .filter_by(id=item.hydrovak.get("hydro_id"))
+            .first()
+        )
         if hydro_object is None:
-            self.selected_variant_remark.setPlainText('')
+            self.selected_variant_remark.setPlainText("")
             self.selected_variant_remark.setDisabled(True)
             self.kijk_variant_knop.setDisabled(True)
             return None
@@ -1042,7 +1182,7 @@ class LeggerWidget(QDockWidget):
 
         self.selected_variant_remark.setDisabled(False)
         self.kijk_variant_knop.setDisabled(False)
-        self.selected_variant_remark.setPlainText(item.hydrovak.get('opmerkingen'))
+        self.selected_variant_remark.setPlainText(item.hydrovak.get("opmerkingen"))
         self.update_available_variants()
 
     def save_remarks(self):
@@ -1061,19 +1201,18 @@ class LeggerWidget(QDockWidget):
                 WHERE 
                   id = ?
             """,
-                [txt,
-                 self.selected_hydrovak.hydrovak['id']]
+                [txt, self.selected_hydrovak.hydrovak["id"]],
             )
             session.commit()
 
             # update tree
             self.legger_model.setDataItemKey(
                 self.selected_hydrovak,
-                'opmerkingen',
-                self.selected_variant_remark.toPlainText())
+                "opmerkingen",
+                self.selected_variant_remark.toPlainText(),
+            )
 
     def update_available_variants(self):
-
         item = self.selected_hydrovak
         hydro_object = self.selected_hydrovak_db
 
@@ -1082,29 +1221,42 @@ class LeggerWidget(QDockWidget):
         if hydro_object is None:
             return
 
-        selected_variant_id = item.hydrovak.get('selected_variant_id')
+        selected_variant_id = item.hydrovak.get("selected_variant_id")
 
-        var = self.session.query(Varianten) \
-            .join(BegroeiingsVariant) \
-            .filter(Varianten.hydro == hydro_object) \
+        var = (
+            self.session.query(Varianten)
+            .join(BegroeiingsVariant)
+            .filter(Varianten.hydro == hydro_object)
             .order_by(Varianten.diepte)
+        )
 
         if self.active_begroeiings_variant == SHOW_ALL:
             pass
         elif self.active_begroeiings_variant == PRE_SELECTED:
-            var = var.filter(or_(Varianten.begroeiingsvariant == hydro_object.begroeiingsvariant,
-                                 Varianten.id == selected_variant_id))
+            var = var.filter(
+                or_(
+                    Varianten.begroeiingsvariant == hydro_object.begroeiingsvariant,
+                    Varianten.id == selected_variant_id,
+                )
+            )
         elif self.active_begroeiings_variant == STANDARD:
-            var = self.session.query(Varianten) \
-                .join(BegroeiingsVariant) \
-                .filter(Varianten.hydro == hydro_object) \
-                .filter(Varianten.standaard_profiel_code != None) \
+            var = (
+                self.session.query(Varianten)
+                .join(BegroeiingsVariant)
+                .filter(Varianten.hydro == hydro_object)
+                .filter(Varianten.standaard_profiel_code != None)
                 .order_by(Varianten.diepte)
+            )
         elif self.active_begroeiings_variant is not None:
-            var = var.filter(or_(BegroeiingsVariant.naam == self.active_begroeiings_variant,
-                                 Varianten.id == selected_variant_id))
+            var = var.filter(
+                or_(
+                    BegroeiingsVariant.naam == self.active_begroeiings_variant,
+                    Varianten.id == selected_variant_id,
+                )
+            )
 
         from legger import settings
+
         verhang = 3.0
         color_map = (
             (1.0, settings.LOW_COLOR),
@@ -1117,21 +1269,30 @@ class LeggerWidget(QDockWidget):
             over_width = None
             over_depth = None
 
-            if (profile.hydro.kenmerken and profile.hydro.kenmerken[0].diepte is not None
-                    and profile.diepte is not None):
+            if (
+                profile.hydro.kenmerken
+                and profile.hydro.kenmerken[0].diepte is not None
+                and profile.diepte is not None
+            ):
                 over_depth = profile.hydro.kenmerken[0].diepte - profile.diepte
-            if (profile.hydro.kenmerken and profile.hydro.kenmerken[0].breedte is not None
-                    and profile.waterbreedte is not None):
+            if (
+                profile.hydro.kenmerken
+                and profile.hydro.kenmerken[0].breedte is not None
+                and profile.waterbreedte is not None
+            ):
                 over_width = profile.hydro.kenmerken[0].breedte - profile.waterbreedte
 
             prof_verhang = profile.verhang
-            if prof_verhang is None or (profile.verhang_inlaat is not None and prof_verhang < profile.verhang_inlaat):
+            if prof_verhang is None or (
+                profile.verhang_inlaat is not None
+                and prof_verhang < profile.verhang_inlaat
+            ):
                 prof_verhang = profile.verhang_inlaat
 
             if profile.standaard_profiel_code:
                 bv_value = profile.standaard_profiel_code
                 bv_color = [150, 150, 150]
-            elif profile.id.startswith('m_'):
+            elif profile.id.startswith("m_"):
                 bv_value = f"{profile.begroeiingsvariant.naam} (hand)"
                 bv_color = [150, 255, 150]
             else:
@@ -1145,58 +1306,76 @@ class LeggerWidget(QDockWidget):
             else:
                 over_width_color = [255, 255, 255]
 
-            profs.append({
-                'is_standaard': True if profile.standaard_profiel_code else False,
-                'name': profile.id,
-                'active': active,  # digits differ far after the
-                'depth': profile.diepte,
-                'hydrau_depth': profile.diepte if profile.hydraulische_diepte is None else profile.hydraulische_diepte,
-                'hydrau_bottom_width': profile.hydraulische_bodembreedte,
-                'talud': profile.talud,
-                'width': profile.waterbreedte,
-                'begroeiingsvariant': bv_value,
-                'begroeiingsvariant_color': bv_color,
-                'over_depth': over_depth if over_depth is not None else None,
-                'over_width': over_width if over_depth is not None else None,
-                'over_width_color': over_width_color,
-                'verhang': profile.verhang,
-                'color': interpolated_color(value=prof_verhang, color_map=color_map,
-                                            alpha=(255 if active else 80)),
-                'verhang_inlaat': profile.verhang_inlaat,
-                'color_inlaat': interpolated_color(value=profile.verhang_inlaat, color_map=color_map,
-                                                   alpha=(255 if active else 80)),
-                'score': profile.figuren[0].t_fit if profile.figuren else None,
-                'points': [
-                    (-0.5 * profile.waterbreedte, hydro_object.streefpeil),
-                    (-0.5 * profile.bodembreedte, hydro_object.streefpeil - profile.diepte),
-                    (0.5 * profile.bodembreedte, hydro_object.streefpeil - profile.diepte),
-                    (0.5 * profile.waterbreedte, hydro_object.streefpeil),
-                ]
-            })
+            profs.append(
+                {
+                    "is_standaard": True if profile.standaard_profiel_code else False,
+                    "name": profile.id,
+                    "active": active,  # digits differ far after the
+                    "depth": profile.diepte,
+                    "hydrau_depth": profile.diepte
+                    if profile.hydraulische_diepte is None
+                    else profile.hydraulische_diepte,
+                    "hydrau_bottom_width": profile.hydraulische_bodembreedte,
+                    "talud": profile.talud,
+                    "width": profile.waterbreedte,
+                    "begroeiingsvariant": bv_value,
+                    "begroeiingsvariant_color": bv_color,
+                    "over_depth": over_depth if over_depth is not None else None,
+                    "over_width": over_width if over_depth is not None else None,
+                    "over_width_color": over_width_color,
+                    "verhang": profile.verhang,
+                    "color": interpolated_color(
+                        value=prof_verhang,
+                        color_map=color_map,
+                        alpha=(255 if active else 80),
+                    ),
+                    "verhang_inlaat": profile.verhang_inlaat,
+                    "color_inlaat": interpolated_color(
+                        value=profile.verhang_inlaat,
+                        color_map=color_map,
+                        alpha=(255 if active else 80),
+                    ),
+                    "score": profile.figuren[0].t_fit if profile.figuren else None,
+                    "points": [
+                        (-0.5 * profile.waterbreedte, hydro_object.streefpeil),
+                        (
+                            -0.5 * profile.bodembreedte,
+                            hydro_object.streefpeil - profile.diepte,
+                        ),
+                        (
+                            0.5 * profile.bodembreedte,
+                            hydro_object.streefpeil - profile.diepte,
+                        ),
+                        (0.5 * profile.waterbreedte, hydro_object.streefpeil),
+                    ],
+                }
+            )
         self.variant_model.insertRows(profs)
 
     def update_available_profiles(self, item, calc_out):
         """
-            used for updating ranges after adding a profile manually
+        used for updating ranges after adding a profile manually
         """
         # first save
-        if not calc_out.get('water_depth') or not calc_out.get('water_width'):
+        if not calc_out.get("water_depth") or not calc_out.get("water_width"):
             return
 
         found = False
         i = 0
 
         id_value_org = "m_{hydro_id}_{depth}_{begroeiingsvariant_id}".format(
-            hydro_id=item.hydrovak.get('hydro_id'),
-            depth=try_round(calc_out.get('water_depth'), 2),
-            begroeiingsvariant_id = calc_out.get('begroeiingsvariant_id'),
+            hydro_id=item.hydrovak.get("hydro_id"),
+            depth=try_round(calc_out.get("water_depth"), 2),
+            begroeiingsvariant_id=calc_out.get("begroeiingsvariant_id"),
         )
         id_value = id_value_org
         while not found:
             if i > 0:
-                id_value = f'{id_value_org}_{i}'
+                id_value = f"{id_value_org}_{i}"
 
-            count = self.session.query(Varianten).filter(Varianten.id == id_value).count()
+            count = (
+                self.session.query(Varianten).filter(Varianten.id == id_value).count()
+            )
 
             if count == 0:
                 found = True
@@ -1205,20 +1384,22 @@ class LeggerWidget(QDockWidget):
 
         variant = Varianten(
             id=id_value,
-            diepte=calc_out.get('water_depth'),
-            waterbreedte=calc_out.get('water_width'),
-            bodembreedte=calc_out.get('bottom_width'),
-            talud=calc_out.get('talud'),
-            hydraulische_diepte=calc_out.get('hydraulic_depth'),
-            hydraulische_waterbreedte=calc_out.get('water_depth'),
-            hydraulische_bodembreedte=calc_out.get('bottom_width'),
-            hydraulische_talud=calc_out.get('talud'),
-            verhang=calc_out.get('gradient'),
-            verhang_inlaat=calc_out.get('gradient_inlet'),
-            afvoer_leidend=calc_out.get('gradient_inlet') > calc_out.get('gradient') if calc_out.get('gradient_inlet') is not None else False,
-            opmerkingen='handmatig aangemaakt',
-            begroeiingsvariant_id=calc_out.get('begroeiingsvariant_id'),
-            hydro_id=item.hydrovak.get('hydro_id')
+            diepte=calc_out.get("water_depth"),
+            waterbreedte=calc_out.get("water_width"),
+            bodembreedte=calc_out.get("bottom_width"),
+            talud=calc_out.get("talud"),
+            hydraulische_diepte=calc_out.get("hydraulic_depth"),
+            hydraulische_waterbreedte=calc_out.get("water_depth"),
+            hydraulische_bodembreedte=calc_out.get("bottom_width"),
+            hydraulische_talud=calc_out.get("talud"),
+            verhang=calc_out.get("gradient"),
+            verhang_inlaat=calc_out.get("gradient_inlet"),
+            afvoer_leidend=calc_out.get("gradient_inlet") > calc_out.get("gradient")
+            if calc_out.get("gradient_inlet") is not None
+            else False,
+            opmerkingen="handmatig aangemaakt",
+            begroeiingsvariant_id=calc_out.get("begroeiingsvariant_id"),
+            hydro_id=item.hydrovak.get("hydro_id"),
         )
 
         self.session.add(variant)
@@ -1228,20 +1409,25 @@ class LeggerWidget(QDockWidget):
         self.on_select_edit_hydrovak(item)
         diepte = float(variant.diepte)
 
-        if item.hydrovak.get('variant_max_depth') is None or diepte > item.hydrovak.get('variant_max_depth'):
-            self.legger_model.setDataItemKey(item, 'variant_max_depth', diepte)
+        if item.hydrovak.get("variant_max_depth") is None or diepte > item.hydrovak.get(
+            "variant_max_depth"
+        ):
+            self.legger_model.setDataItemKey(item, "variant_max_depth", diepte)
 
-        if item.hydrovak.get('variant_min_depth') is None or diepte < item.hydrovak.get('variant_min_depth'):
-            self.legger_model.setDataItemKey(item, 'variant_min_depth', diepte)
+        if item.hydrovak.get("variant_min_depth") is None or diepte < item.hydrovak.get(
+            "variant_min_depth"
+        ):
+            self.legger_model.setDataItemKey(item, "variant_min_depth", diepte)
 
         # select variant
         # get item with id id_value
         from legger.views.input_widget import first
+
         variant = first(self.variant_model.rows, lambda x: x.name.value == id_value)
         row_index = self.variant_model.rows.index(variant)
         col_index = None
         for i, col in enumerate(self.variant_model.columns):
-            if col.name == 'active':
+            if col.name == "active":
                 col_index = i
                 break
         index = self.variant_model.index(row_index, col_index)
@@ -1255,18 +1441,22 @@ class LeggerWidget(QDockWidget):
         return self.begroeiings_varianten[self.begroeiings_combo.currentText()]
 
     def get_begroeiings_strategy(self):
-        return self.begroeiings_variant_strategies[self.begroeiings_strategy_combo.currentText()]
+        return self.begroeiings_variant_strategies[
+            self.begroeiings_strategy_combo.currentText()
+        ]
 
     def get_child_selection_strategy(self):
-
-        return self.child_selection_strategies[self.child_selection_strategy_combo.currentText()]
+        return self.child_selection_strategies[
+            self.child_selection_strategy_combo.currentText()
+        ]
 
     def on_toggle_dockable(self, *args, **kwargs):
         self.toggle_dockable()
 
     def toggle_dockable(self, force_docked=None):
-
-        if (force_docked is not None and not force_docked) or (force_docked is None and self.subwindows_docked):
+        if (force_docked is not None and not force_docked) or (
+            force_docked is None and self.subwindows_docked
+        ):
             self.hydrovak_graphSplitter.addWidget(self.graph_widget)
             self.contentLayout.addWidget(self.variantWidget)
 
@@ -1328,7 +1518,7 @@ class LeggerWidget(QDockWidget):
 
         return: None
         """
-        if  self.current_change_nr > 0:
+        if self.current_change_nr > 0:
             self.undo_button.setEnabled(True)
             self.undo_button.setText(f"undo ({self.current_change_nr})")
         else:
@@ -1337,7 +1527,9 @@ class LeggerWidget(QDockWidget):
 
         if self.current_change_nr < len(self.change_array):
             self.redo_button.setEnabled(True)
-            self.redo_button.setText(f"redo ({len(self.change_array) - self.current_change_nr})")
+            self.redo_button.setText(
+                f"redo ({len(self.change_array) - self.current_change_nr})"
+            )
         else:
             self.redo_button.setEnabled(False)
             self.redo_button.setText("redo")
@@ -1352,27 +1544,30 @@ class LeggerWidget(QDockWidget):
         try:
             for change in changes["changes"]:
                 self.set_to_variant(
-                    change['hydro_id'],
-                    change['old']['variant_id'],
-                    change['old']['selected_on']
+                    change["hydro_id"],
+                    change["old"]["variant_id"],
+                    change["old"]["selected_on"],
                 )
-                if change['hydro_id'] == self.selected_hydrovak.hydrovak.get('id'):
-                    variant_id = change['old']['variant_id']
+                if change["hydro_id"] == self.selected_hydrovak.hydrovak.get("id"):
+                    variant_id = change["old"]["variant_id"]
 
                     if variant_id is None:
                         # reset active
-                        # self.variant_model.setData(index, False, Qt.CheckStateRole)
-                        pass
-
-                    variant = first(self.variant_model.rows, lambda x: x.name.value == variant_id)
-                    row_index = self.variant_model.rows.index(variant)
-                    col_index = None
-                    for i, col in enumerate(self.variant_model.columns):
-                        if col.name == "active":
-                            col_index = i
-                            break
-                    index = self.variant_model.index(row_index, col_index)
-                    self.variant_model.setData(index, True, Qt.CheckStateRole)
+                        for row in self.variant_model.rows:
+                            row.active.value = False
+                    else:
+                        variant = first(
+                            self.variant_model.rows,
+                            lambda x: x.name.value == variant_id,
+                        )
+                        row_index = self.variant_model.rows.index(variant)
+                        col_index = None
+                        for i, col in enumerate(self.variant_model.columns):
+                            if col.name == "active":
+                                col_index = i
+                                break
+                        index = self.variant_model.index(row_index, col_index)
+                        self.variant_model.setData(index, True, Qt.CheckStateRole)
         except Exception as e:
             print("Error during undo:", e)
             self.session.rollback()
@@ -1434,9 +1629,11 @@ class LeggerWidget(QDockWidget):
         node = None
 
         root_node = self.legger_model.rootItem.child(0)
-        index = self.legger_model.find_younger(self.legger_model.createIndex(root_node.row(), 0, root_node),
-                                               'hydro_id',
-                                               hydro_id)
+        index = self.legger_model.find_younger(
+            self.legger_model.createIndex(root_node.row(), 0, root_node),
+            "hydro_id",
+            hydro_id,
+        )
 
         if index is not None:
             node = self.legger_model.data(index, role=Qt.UserRole)
@@ -1445,13 +1642,9 @@ class LeggerWidget(QDockWidget):
             if node:
                 self.legger_model.setDataItemKey(node, "selected_depth", None)
                 self.legger_model.setDataItemKey(node, "selected_width", None)
+                self.legger_model.setDataItemKey(node, "selected_variant_id", None)
                 self.legger_model.setDataItemKey(
-                    node, "selected_variant_id", None
-                )
-                self.legger_model.setDataItemKey(
-                    node,
-                    "selected_begroeiingsvariant_id",
-                    None
+                    node, "selected_begroeiingsvariant_id", None
                 )
                 self.legger_model.setDataItemKey(node, "verhang", None)
                 self.legger_model.setDataItemKey(node, "verhang_inlaat", None)
@@ -1511,9 +1704,13 @@ class LeggerWidget(QDockWidget):
                 verhang_inlaat = try_round(profile_variant.verhang_inlaat, 1, "-")
                 self.legger_model.setDataItemKey(node, "selected_depth", depth)
                 self.legger_model.setDataItemKey(node, "selected_width", width)
-                self.legger_model.setDataItemKey(node, "selected_variant_id", profile_variant.id)
                 self.legger_model.setDataItemKey(
-                    node, "selected_begroeiingsvariant_id", profile_variant.begroeiingsvariant_id
+                    node, "selected_variant_id", profile_variant.id
+                )
+                self.legger_model.setDataItemKey(
+                    node,
+                    "selected_begroeiingsvariant_id",
+                    profile_variant.begroeiingsvariant_id,
                 )
                 self.legger_model.setDataItemKey(node, "verhang", verhang)
                 self.legger_model.setDataItemKey(node, "verhang_inlaat", verhang_inlaat)
@@ -1523,9 +1720,7 @@ class LeggerWidget(QDockWidget):
 
             selected = (
                 self.session.query(GeselecteerdeProfielen)
-                .filter(
-                    GeselecteerdeProfielen.hydro_id == hydro_id
-                )
+                .filter(GeselecteerdeProfielen.hydro_id == hydro_id)
                 .first()
             )
 
@@ -1567,12 +1762,16 @@ class LeggerWidget(QDockWidget):
 
         self.category_combo.currentIndexChanged.disconnect(self.category_change)
         self.show_manual_input_button.clicked.disconnect(self.show_manual_input_window)
-        self.show_edit_manual_input_button.clicked.disconnect(self.show_edit_manual_input_window)
+        self.show_edit_manual_input_button.clicked.disconnect(
+            self.show_edit_manual_input_window
+        )
         self.next_endpoint_button.clicked.disconnect(self.set_next_endpoint)
         self.variant_model.dataChanged.disconnect(self.data_changed_variant)
         self.legger_model.dataChanged.disconnect(self.data_changed_legger_tree)
         self.area_model.dataChanged.disconnect(self.data_changed_area_model)
-        self.begroeiings_combo.currentIndexChanged.disconnect(self.onSelectBegroeiingsVariant)
+        self.begroeiings_combo.currentIndexChanged.disconnect(
+            self.onSelectBegroeiingsVariant
+        )
         self.kijk_variant_knop.clicked.disconnect(self.open_kijkprofiel_dialog)
         self.search_hydrovak.currentIndexChanged.disconnect(self.search_hydrovak_combo)
         self.map_search_button.clicked.disconnect(self.toggleMapTool)
@@ -1647,10 +1846,7 @@ class LeggerWidget(QDockWidget):
         self.button_bar_hlayout.addWidget(self.redo_button)
         self.redo_button.setDisabled(True)
 
-        spacer_item = QSpacerItem(40,
-                                  20,
-                                  QSizePolicy.Expanding,
-                                  QSizePolicy.Minimum)
+        spacer_item = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.button_bar_hlayout.addItem(spacer_item)
 
         self.make_dockable_button = QPushButton(self)
@@ -1670,11 +1866,11 @@ class LeggerWidget(QDockWidget):
 
         # startpointTree
         self.startpoint_tree_widget = StartpointTreeWidget(self, self.area_model)
-        self.tree_table_tab.addTab(self.startpoint_tree_widget, 'startpunten')
+        self.tree_table_tab.addTab(self.startpoint_tree_widget, "startpunten")
 
         # LeggerTree
         self.legger_tree_widget = LeggerTreeWidget(self, self.legger_model)
-        self.tree_table_tab.addTab(self.legger_tree_widget, 'hydrovakken')
+        self.tree_table_tab.addTab(self.legger_tree_widget, "hydrovakken")
 
         self.hydrovak_graphSplitter.addWidget(self.tree_table_tab)
         # ------------------- graphs -----------------------
@@ -1692,9 +1888,11 @@ class LeggerWidget(QDockWidget):
         # self.graph_widget.addWidget(self.graph_vlayout)
 
         self.plot_widget = LeggerPlotWidget(
-            self, session=self.session,
+            self,
+            session=self.session,
             legger_model=self.legger_model,
-            variant_model=self.variant_model)
+            variant_model=self.variant_model,
+        )
 
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sizePolicy.setVerticalStretch(1)
@@ -1705,12 +1903,13 @@ class LeggerWidget(QDockWidget):
 
         # Sideview Graph
         self.sideview_widget = LeggerSideViewPlotWidget(
-            self, session=self.session,
-            legger_model=self.legger_model)
+            self, session=self.session, legger_model=self.legger_model
+        )
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(
-            self.sideview_widget.sizePolicy().hasHeightForWidth())
+            self.sideview_widget.sizePolicy().hasHeightForWidth()
+        )
         self.sideview_widget.setSizePolicy(sizePolicy)
         self.sideview_widget.setMinimumSize(QSize(250, 150))
 
@@ -1768,21 +1967,22 @@ class LeggerWidget(QDockWidget):
         QMetaObject.connectSlotsByName(dock_widget)
 
     def retranslate_ui(self, dock_widget):
+        dock_widget.setWindowTitle(_translate("DockWidget", "Legger", None))
+        self.show_manual_input_button.setText(
+            _translate("DockWidget", "Voeg profiel toe", None)
+        )
+        self.show_edit_manual_input_button.setText(
+            _translate("DockWidget", "Bewerk profiel", None)
+        )
+        self.undo_button.setText(_translate("DockWidget", "undo", None))
+        self.redo_button.setText(_translate("DockWidget", "redo", None))
+        self.next_endpoint_button.setText(
+            _translate("DockWidget", "Volgend eindpunt", None)
+        )
+        self.kijk_variant_knop.setText(
+            _translate("DockWidget", "Definieer brede kijkprofiel", None)
+        )
 
-        dock_widget.setWindowTitle(_translate(
-            "DockWidget", "Legger", None))
-        self.show_manual_input_button.setText(_translate(
-            "DockWidget", "Voeg profiel toe", None))
-        self.show_edit_manual_input_button.setText(_translate(
-            "DockWidget", "Bewerk profiel", None))
-        self.undo_button.setText(_translate(
-            "DockWidget", "undo", None))
-        self.redo_button.setText(_translate(
-            "DockWidget", "redo", None))
-        self.next_endpoint_button.setText(_translate(
-            "DockWidget", "Volgend eindpunt", None))
-        self.kijk_variant_knop.setText(_translate(
-            "DockWidget", "Definieer brede kijkprofiel", None))
-
-        self.map_search_button.setText(_translate(
-            "DockWidget", "selecteer op kaart", None))
+        self.map_search_button.setText(
+            _translate("DockWidget", "selecteer op kaart", None)
+        )
