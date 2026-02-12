@@ -318,6 +318,7 @@ class LeggerWidget(QDockWidget):
         self.map_search_button.clicked.connect(self.toggleMapTool)
         self.undo_button.clicked.connect(self.do_undo)
         self.redo_button.clicked.connect(self.do_redo)
+        self.clear_variant_button.clicked.connect(self.clear_active_variant)
 
         self.kijk_variant_knop.clicked.connect(self.open_kijkprofiel_dialog)
 
@@ -889,6 +890,7 @@ class LeggerWidget(QDockWidget):
                 self.variant_model.removeRows(0, len(self.variant_model.rows))
                 self.show_manual_input_button.setDisabled(True)
                 self.show_edit_manual_input_button.setDisabled(True)
+                self.clear_variant_button.setDisabled(True)
 
         elif self.legger_model.columns[index.column()].get("field") in ["ep", "sp"]:
             # clear current track
@@ -1015,6 +1017,7 @@ class LeggerWidget(QDockWidget):
         if self.variant_model.columns[index.column()].name == "active":
             if item.active.value:
                 self.show_edit_manual_input_button.setDisabled(False)
+                self.clear_variant_button.setDisabled(False)
 
                 # only one selected at the time
                 item.color.value = list(item.color.value)[:3] + [255]
@@ -1185,6 +1188,7 @@ class LeggerWidget(QDockWidget):
         self.selected_variant_remark.setPlainText(item.hydrovak.get("opmerkingen"))
         self.update_available_variants()
 
+
     def save_remarks(self):
         if self.selected_hydrovak:
             session = load_spatialite(self.path_legger_db)
@@ -1351,6 +1355,10 @@ class LeggerWidget(QDockWidget):
                 }
             )
         self.variant_model.insertRows(profs)
+        
+        # Update button state: enable if any variant is active
+        has_active_variant = any(prof["active"] for prof in profs)
+        self.clear_variant_button.setDisabled(not has_active_variant)
 
     def update_available_profiles(self, item, calc_out):
         """
@@ -1599,13 +1607,19 @@ class LeggerWidget(QDockWidget):
                     variant_id = change["new"]["variant_id"]
 
                     if variant_id is None:
-                        # reset active
-                        # self.variant_model.setData(index, False, Qt.CheckStateRole)
-                        pass
+                        # reset active (uncheck all)
+                        for row in self.variant_model.rows:
+                            row.active.value = False
+                        # nothing more to do for this change
+                        continue
 
+                    # find the variant row; if not present, skip safely
                     variant = first(
                         self.variant_model.rows, lambda x: x.name.value == variant_id
                     )
+                    if variant is None:
+                        continue
+
                     row_index = self.variant_model.rows.index(variant)
                     col_index = None
                     for i, col in enumerate(self.variant_model.columns):
@@ -1626,6 +1640,29 @@ class LeggerWidget(QDockWidget):
 
         self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
         self.update_undo_buttons()
+
+    def clear_active_variant(self):
+        """
+        Clear/remove the currently active variant profile from the GeselecteerdeProfielen table.
+        This removes any selected variant for the current hydrovak.
+        """
+        # Check if there is a selected hydrovak
+        if not self.legger_model.selected:
+            return
+        
+        # Get the hydro_id of the selected hydrovak
+        hydro_id = self.legger_model.selected.hydrovak.get("id")
+        
+        # Use set_to_variant with variant_id=None to clear the selected variant and related fields
+        self.set_to_variant(hydro_id, None, None)
+        self.session.commit()
+        
+        # Refresh the variant table display
+        self.update_available_variants()
+        
+        # Trigger repaint
+        self.sideview_widget.draw_selected_lines(self.sideview_widget._get_data())
+
 
     def set_to_variant(self, hydro_id, variant_id, selected_on):
         # change["hydro_id"]
@@ -1662,6 +1699,27 @@ class LeggerWidget(QDockWidget):
                 .filter(GeselecteerdeProfielen.hydro_id == hydro_id)
                 .first()
             )
+            old_variant_id = None
+            old_selected_on = None
+            if selected:
+                old_variant_id = selected.variant_id
+                old_selected_on = selected.selected_on
+
+            # Record this action in undo/redo stack unless we are currently undoing/redoing
+            if not getattr(self, "in_undo_redo", False):
+                change = {
+                    "hydro_id": hydro_id,
+                    "old": {"variant_id": old_variant_id, "selected_on": old_selected_on},
+                    "new": {"variant_id": None, "selected_on": None},
+                }
+
+                # remove future redo entries
+                if len(self.change_array) > self.current_change_nr:
+                    self.change_array = self.change_array[: self.current_change_nr]
+
+                self.current_change_nr = len(self.change_array) + 1
+                self.change_array.append({"nr": self.current_change_nr, "changes": [change]})
+                self.update_undo_buttons()
             if selected:
                 self.session.delete(selected)
             else:
@@ -1852,6 +1910,10 @@ class LeggerWidget(QDockWidget):
         self.button_bar_hlayout.addWidget(self.redo_button)
         self.redo_button.setDisabled(True)
 
+        self.clear_variant_button = QPushButton(self)
+        self.button_bar_hlayout.addWidget(self.clear_variant_button)
+        self.clear_variant_button.setDisabled(True)
+
         spacer_item = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.button_bar_hlayout.addItem(spacer_item)
 
@@ -1982,6 +2044,7 @@ class LeggerWidget(QDockWidget):
         )
         self.undo_button.setText(_translate("DockWidget", "undo", None))
         self.redo_button.setText(_translate("DockWidget", "redo", None))
+        self.clear_variant_button.setText(_translate("DockWidget", "wis", None))
         self.next_endpoint_button.setText(
             _translate("DockWidget", "Volgend eindpunt", None)
         )
