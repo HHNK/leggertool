@@ -1090,7 +1090,6 @@ class LeggerWidget(QDockWidget):
             else:
                 # self.show_edit_manual_input_button.setDisabled(True)
                 item.color.value = list(item.color.value)[:3] + [20]
-                self.clear_variant_button.setDisabled(True)
                 # trigger repaint of sideview
                 self.sideview_widget.draw_selected_lines(
                     self.sideview_widget._get_data()
@@ -1608,13 +1607,19 @@ class LeggerWidget(QDockWidget):
                     variant_id = change["new"]["variant_id"]
 
                     if variant_id is None:
-                        # reset active
-                        # self.variant_model.setData(index, False, Qt.CheckStateRole)
-                        pass
+                        # reset active (uncheck all)
+                        for row in self.variant_model.rows:
+                            row.active.value = False
+                        # nothing more to do for this change
+                        continue
 
+                    # find the variant row; if not present, skip safely
                     variant = first(
                         self.variant_model.rows, lambda x: x.name.value == variant_id
                     )
+                    if variant is None:
+                        continue
+
                     row_index = self.variant_model.rows.index(variant)
                     col_index = None
                     for i, col in enumerate(self.variant_model.columns):
@@ -1694,6 +1699,27 @@ class LeggerWidget(QDockWidget):
                 .filter(GeselecteerdeProfielen.hydro_id == hydro_id)
                 .first()
             )
+            old_variant_id = None
+            old_selected_on = None
+            if selected:
+                old_variant_id = selected.variant_id
+                old_selected_on = selected.selected_on
+
+            # Record this action in undo/redo stack unless we are currently undoing/redoing
+            if not getattr(self, "in_undo_redo", False):
+                change = {
+                    "hydro_id": hydro_id,
+                    "old": {"variant_id": old_variant_id, "selected_on": old_selected_on},
+                    "new": {"variant_id": None, "selected_on": None},
+                }
+
+                # remove future redo entries
+                if len(self.change_array) > self.current_change_nr:
+                    self.change_array = self.change_array[: self.current_change_nr]
+
+                self.current_change_nr = len(self.change_array) + 1
+                self.change_array.append({"nr": self.current_change_nr, "changes": [change]})
+                self.update_undo_buttons()
             if selected:
                 self.session.delete(selected)
             else:
