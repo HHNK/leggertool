@@ -93,6 +93,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
                     ["WS_BODEMBREEDTE",              6],
                     ["geselecteerde_hydraulische_diepte",         6],
                     ["geselecteerde_hydraulische_waterbreedte",   6],
+                    ["geselecteerde_overbreedte",   6],
                     ["WS_TALUD_LINKS",               6],
                     ["WS_TALUD_RECHTS",              6],
                     ["inlaatverhang",                6],

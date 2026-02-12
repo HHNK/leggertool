@@ -215,6 +215,7 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
         CAST(round(geselecteerde_hydraulische_bodembreedte, 2)  AS DOUBLE) AS WS_BODEMBREEDTE,
         CAST(round(geselecteerde_hydraulische_diepte, 2)  AS DOUBLE) AS geselecteerde_hydraulische_diepte,
         CAST(round(geselecteerd_hydraulische_waterbreedte , 2)  AS DOUBLE) AS geselecteerde_hydraulische_waterbreedte,
+        CAST(round(breedte, 2) - round(geselecteerd_hydraulische_waterbreedte , 2) AS DOUBLE) AS geselecteerde_overbreedte,
         geselecteerd_talud AS WS_TALUD_LINKS,
         geselecteerd_talud AS WS_TALUD_RECHTS,
         CAST(begr_variant_to_nr.nr AS INTEGER) AS WS_MAX_BEGROEIING,
