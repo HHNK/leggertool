@@ -108,6 +108,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
     fields.append(QgsField("CODE", QVariant.String,len=50))
     fields.append(QgsField("CATEGORIE", QVariant.Int,len=3))
     fields.append(QgsField("grondsoort", QVariant.String))
+    fields.append(QgsField("soort_vak", QVariant.Int, len=3))
     for field in double_fieds:
         fields.append(QgsField(field[0], QVariant.Double,prec=field[1]))
     fields.append(QgsField("WS_MAX_BEGROEIING", QVariant.Int,len=5))
@@ -126,6 +127,7 @@ def export_sqlite_view_to_geopackage(sqlite_path, parent=None):
         new_feat.setAttribute("CODE", feat["CODE"])
         new_feat.setAttribute("CATEGORIE", feat["CATEGORIE"])
         new_feat.setAttribute("grondsoort", feat["grondsoort"])
+        new_feat.setAttribute("soort_vak", feat["soort_vak"])
         for field in double_fieds:
             new_feat.setAttribute(field[0], feat[field[0]])
         new_feat.setAttribute("WS_MAX_BEGROEIING", feat["WS_MAX_BEGROEIING"])
