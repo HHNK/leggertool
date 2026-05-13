@@ -207,6 +207,7 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
         code as CODE,
         categorieoppwaterlichaam AS CATEGORIE,
         grondsoort,
+        soort_vak,
         CAST(round(streefpeil, 2)  AS DOUBLE) AS streefpeil,
         CAST(round(zomerpeil, 2)  AS DOUBLE) AS zomerpeil,
         CAST(round(breedte, 2)  AS DOUBLE) AS waterbreedte_BGT,
