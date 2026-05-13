@@ -230,7 +230,7 @@ def create_legger_view_export_damo(conn: sqlite3.Connection):
         geometry
     FROM
         hydroobjects_selected_legger hsel_leg
-    INNER JOIN begr_variant_to_nr ON begr_variant_to_nr.id = hsel_leg.geselecteerde_begroeiingsvariant
+    LEFT JOIN begr_variant_to_nr ON begr_variant_to_nr.id = hsel_leg.geselecteerde_begroeiingsvariant
     """)
     conn.commit()
 
