@@ -258,25 +258,46 @@ class AutomaticFillLegger(object):
     def get_network(self):
         pass
 
-    def run(self):
-
-        hydrovak_selected = {}
-
-        hydrovakken = self.get_hydrovakken()
-
+    def get_profile_options_for_hydrovak(self, grondsoort, taludvoorkeur):
         prof_table = self.get_table()
 
-        def get_profile_options(grondsoort):
-            tbl = prof_table
+        if grondsoort in prof_table:
+            gsr = prof_table[grondsoort]
+        else:
+            gsr = prof_table['overig']
 
-            if grondsoort in prof_table:
-                gsr = prof_table[grondsoort]
-            else:
-                gsr = prof_table['overig']
+        options = deepcopy(gsr)
 
-            options = deepcopy(gsr)
+        if taludvoorkeur:
+            options = self.filter_table_on_talud(options, taludvoorkeur)
 
-            return options
+        return options
+
+    def add_default_profiles(self):
+        hydrovakken = self.get_hydrovakken()
+
+        for hydrovak in hydrovakken:
+            if hydrovak.get('soort_vak') in (3, 4):
+                continue
+
+            hydro_id = hydrovak.get('id')
+            code = hydrovak.get('code')
+            debiet = hydrovak.get('debiet')
+            debiet_inlaat = hydrovak.get('debiet_inlaat')
+            grondsoort = hydrovak.get('grondsoort')
+            zpeil_diff = hydrovak.get('zpeil_diff') or 0.0
+            taludvoorkeur = hydrovak.get('taludvoorkeur')
+
+            profile_options_grondsoort = self.get_profile_options_for_hydrovak(grondsoort, taludvoorkeur)
+            if profile_options_grondsoort is None:
+                continue
+
+            self.add_default_variants(hydro_id, code, profile_options_grondsoort, debiet, debiet_inlaat, zpeil_diff)
+
+    def fill_default_profiles(self):
+
+        hydrovak_selected = {}
+        hydrovakken = self.get_hydrovakken()
 
         def filter_options_on_debiet(options, debiet):
 
@@ -307,24 +328,17 @@ class AutomaticFillLegger(object):
             grondsoort = hydrovak.get('grondsoort')
             profiel_breedte = hydrovak.get('breedte')
             profiel_diepte = hydrovak.get('diepte')
-            zpeil_diff = hydrovak.get('zpeil_diff')
+            zpeil_diff = hydrovak.get('zpeil_diff') or 0.0
             taludvoorkeur = hydrovak.get('taludvoorkeur')
-            if not zpeil_diff:
-                zpeil_diff = 0.0
 
             debiet_def = max(abs(debiet if debiet else 0.0), abs(debiet_inlaat if debiet_inlaat else 0.0))
 
-            # get options based on grondsoort
-            profile_options_grondsoort = get_profile_options(grondsoort)
+            profile_options_grondsoort = self.get_profile_options_for_hydrovak(grondsoort, taludvoorkeur)
+            if profile_options_grondsoort is None:
+                continue
 
-            if taludvoorkeur:
-                # filter, keep only options with taludvoorkeur
-                profile_options_grondsoort = self.filter_table_on_talud(profile_options_grondsoort, taludvoorkeur)
-
-            # verhang and verhang_inlaat will be added to profile_options_grondsoort
             self.add_default_variants(hydro_id, code, profile_options_grondsoort, debiet, debiet_inlaat, zpeil_diff)
 
-            # todo: logisch om hier ook te filteren op inlaat debiet (door ander peil hoeft dit niet leidend te zijn)?
             profile_options = filter_options_on_debiet(profile_options_grondsoort, debiet_def)
 
             if profile_options is None:
@@ -358,7 +372,6 @@ class AutomaticFillLegger(object):
 
             hydrovak_selected[code] = selected_variants
 
-        # voor nu de eerste optie
         for hydro_code, selected_variants in hydrovak_selected.items():
             valid_variants = [item for item in selected_variants if item.get('gradient_inlaat_ok')]
             if len(valid_variants):
@@ -367,8 +380,11 @@ class AutomaticFillLegger(object):
                 selected = None
             hydrovak_selected[hydro_code] = selected
 
-        # wegschrijven
         self.save_to_database(hydrovak_selected)
+
+    def run(self):
+        self.add_default_profiles()
+        self.fill_default_profiles()
 
     def get_profile_options(self, debiet, grondsoort):
         prof_table = self.get_table()
@@ -380,9 +396,15 @@ class AutomaticFillLegger(object):
         return None
 
 
-def automatic_fill_legger(polder_sqlite_path):
+def automatic_fill_legger(polder_sqlite_path, add_only=False, fill_where_possible=False):
     af = AutomaticFillLegger(polder_sqlite_path, None)
-    table = af.run()
+    if add_only:
+        af.add_default_profiles()
+        return
+    if fill_where_possible:
+        af.fill_default_profiles()
+        return
+    af.run()
 
 
 if __name__ == '__main__':
