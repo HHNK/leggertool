@@ -11,7 +11,9 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtWidgets import (
     QApplication,
+    QAbstractItemView,
     QComboBox,
+    QCompleter,
     QDockWidget,
     QGroupBox,
     QHBoxLayout,
@@ -23,8 +25,6 @@ from qgis.PyQt.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
-    QCompleter,
-    QAbstractItemView,
 )
 from qgis._core import QgsFields
 from qgis._gui import QgsMapToolIdentifyFeature, QgsMapToolIdentify
@@ -259,7 +259,13 @@ class LeggerWidget(QDockWidget):
         self.child_selection_strategy_combo.insertItems(
             0, self.child_selection_strategies.keys()
         )
-        self.child_selection_strategy_combo.setCurrentIndex(0)
+        default_child_strategy = "alleen dit hydrovak"
+        if default_child_strategy in self.child_selection_strategies:
+            self.child_selection_strategy_combo.setCurrentIndex(
+                list(self.child_selection_strategies.keys()).index(default_child_strategy)
+            )
+        else:
+            self.child_selection_strategy_combo.setCurrentIndex(0)
 
         log.warning("starting: create line layer and add to map")
         # create line layer and add to map
@@ -1185,36 +1191,52 @@ class LeggerWidget(QDockWidget):
 
         self.selected_variant_remark.setDisabled(False)
         self.kijk_variant_knop.setDisabled(False)
-        self.selected_variant_remark.setPlainText(item.hydrovak.get("opmerkingen"))
+        remark = item.hydrovak.get("opmerkingen") or ""
+        self.selected_variant_remark.setPlainText(remark)
         self.update_available_variants()
 
 
+    def _merge_hydroobject_remarks(self, existing_text, new_text):
+        current = (existing_text or "").strip()
+        incoming = (new_text or "").strip()
+
+        if not incoming:
+            return current
+        if not current:
+            return incoming
+
+        parts = [part.strip() for part in current.split(",") if part.strip()]
+        if incoming not in parts:
+            parts.append(incoming)
+        return ", ".join(parts)
+
     def save_remarks(self):
-        if self.selected_hydrovak:
-            session = load_spatialite(self.path_legger_db)
+        if not self.selected_hydrovak:
+            return
 
-            # save to database
-            txt = self.selected_variant_remark.toPlainText()
+        hydro_id = self.selected_hydrovak.hydrovak["id"]
+        txt = self.selected_variant_remark.toPlainText().strip()
+        hydro_object = (
+            self.session.query(HydroObject)
+            .filter(HydroObject.id == hydro_id)
+            .first()
+        )
 
-            session.execute(
-                """
-                UPDATE 
-                  hydroobject 
-                SET
-                  opmerkingen = ?
-                WHERE 
-                  id = ?
-            """,
-                [txt, self.selected_hydrovak.hydrovak["id"]],
-            )
-            session.commit()
+        if hydro_object is None:
+            return
 
-            # update tree
-            self.legger_model.setDataItemKey(
-                self.selected_hydrovak,
-                "opmerkingen",
-                self.selected_variant_remark.toPlainText(),
-            )
+        # The remark field in the widget is the authoritative value for this hydrovak.
+        # It should replace the previous text, not append to it. The concatenate logic is
+        # kept only for manual profile creation elsewhere in the tool.
+        hydro_object.opmerkingen = txt
+        self.session.commit()
+
+        # update tree
+        self.legger_model.setDataItemKey(
+            self.selected_hydrovak,
+            "opmerkingen",
+            txt,
+        )
 
     def update_available_variants(self):
         item = self.selected_hydrovak
@@ -1368,6 +1390,19 @@ class LeggerWidget(QDockWidget):
         if not calc_out.get("water_depth") or not calc_out.get("water_width"):
             return
 
+        remark = (calc_out.get("opmerking") or "").strip()
+
+        hydro_object = (
+            self.session.query(HydroObject)
+            .filter(HydroObject.id == item.hydrovak.get("hydro_id"))
+            .first()
+        )
+        if hydro_object is not None:
+            hydro_object.opmerkingen = self._merge_hydroobject_remarks(
+                hydro_object.opmerkingen,
+                remark,
+            )
+
         found = False
         i = 0
 
@@ -1405,13 +1440,16 @@ class LeggerWidget(QDockWidget):
             afvoer_leidend=calc_out.get("gradient_inlet") > calc_out.get("gradient")
             if calc_out.get("gradient_inlet") is not None
             else False,
-            opmerkingen="handmatig aangemaakt",
+            opmerkingen=remark or "handmatig aangemaakt",
             begroeiingsvariant_id=calc_out.get("begroeiingsvariant_id"),
             hydro_id=item.hydrovak.get("hydro_id"),
         )
 
         self.session.add(variant)
         self.session.commit()
+
+        if item is not None:
+            self.legger_model.setDataItemKey(item, "opmerkingen", hydro_object.opmerkingen if hydro_object is not None else remark)
 
         # update variant table
         self.on_select_edit_hydrovak(item)
