@@ -126,6 +126,15 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         redirect_flows(self.polder_datasource, change_flow_direction=change_flow_direction)
         self.feedbacktext.setText("Debieten zijn aangepast.")
 
+    def show_step_help(self, title, explanation):
+        """Display a short explanation for a step."""
+        msg = QtWidgets.QMessageBox(self)
+        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setWindowTitle(title)
+        msg.setText(f"<b>{title}</b>")
+        msg.setInformativeText(explanation)
+        msg.exec_()
+
     def explain_step3(self):
         """
         Uitleg van stap 3
@@ -204,20 +213,6 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
 
         self.feedbacktext.setText("De punten zijn gesnapt.")
 
-    def run_all(self):
-        self.execute_snap_points()
-        time.sleep(1)
-        self.execute_redirect_flows()
-        time.sleep(1)
-        self.execute_step3_calculate_variants()
-        time.sleep(1)
-        self.execute_add_standard_profiles()
-        time.sleep(1)
-        self.execute_fill_standard_profiles()
-        time.sleep(1)
-        self.execute_step5()
-        self.feedbacktext.setText("Alle taken uitgevoerd.")
-
     def post_process(self):
         calc_gradient(self.polder_datasource)
         self.feedbacktext.setText("Totaal gradient berekend")
@@ -259,10 +254,19 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.snap_points_button = QtWidgets.QPushButton(self)
         self.snap_points_button.setObjectName("Snap points")
         self.snap_points_button.clicked.connect(self.execute_snap_points)
+        self.snap_points_help_button = QtWidgets.QPushButton(self)
+        self.snap_points_help_button.setObjectName("uitleg_stap1")
+        self.snap_points_help_button.setText("Uitleg")
+        self.snap_points_help_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Stap 1: snap hydroobjecten",
+                "Snapt de uiteinden van de hydroobjecten op elkaar zodat de punten goed aansluiten voor de netwerkanalyse."
+            ))
         self.groupBox_snap_points = QtWidgets.QGroupBox(self)
         self.groupBox_snap_points.setTitle("Stap 1: snap hydroobjecten")
         self.box_snap_points = QtWidgets.QHBoxLayout()
         self.box_snap_points.addWidget(self.snap_points_button)
+        self.box_snap_points.addWidget(self.snap_points_help_button)
         self.groupBox_snap_points.setLayout(self.box_snap_points)  # box toevoegen aan groupbox
 
         # Assembling step 2 - redirect_flows
@@ -272,12 +276,25 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.step_redirect_flow_button = QtWidgets.QPushButton(self)
         self.step_redirect_flow_button.setObjectName("redirect_flow")
         self.step_redirect_flow_button.clicked.connect(self.execute_redirect_flows)
+        self.step_redirect_flow_help_button = QtWidgets.QPushButton(self)
+        self.step_redirect_flow_help_button.setObjectName("uitleg_stap2")
+        self.step_redirect_flow_help_button.setText("Uitleg")
+        self.step_redirect_flow_help_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Stap 2: kies eindpunten en daarna her-verdeel 3di debiet",
+                "Kies eerst zelf de de juiste eindpunten in de kolom 'eindpunt_geselecteerd' van de laag 'debiet'! Eindpunten zijn alle plaatsen waar de afvoer het modelgebied verlaat, zoals gemalen of randvoorwaarden.\n"
+                "De leggertool doet een suggestie in 'eindpunt_potentieel'. Als er geen eindpunt wordt geselecteerd wordt de kolom potentieel gebruikt. \n"
+                "Het herverdelen dwingt stroming die via niet-primaire watergangen loopt via het primaire watersysteem. Het doel hiervan is om omloop te voorkomen en daarmee te zorgen dat de hele afvoer door de primaire profielen past. \n"
+                "In complexe situaties kan de afvoer van niet-primaire wateren een andere primaire route nemen. Bijvoorbeeld bij parallelle routes of meerdere eindpunten. De afvoer op primaire routes kan niet lager worden. In sommige gevallen geeft het herverdelen zonder 'stroomrichting omkeerbaar' betere resultaat. Hiermee kan geëxperimenteerd worden. \n"
+                "Controleer de resultaten van het herverdelen met de lagen in de layer group 'herverdelingscheck'. Met de puntenbalansen kunnen ook model of koppelfouten opgespoord worden, pas deze in de input aan en her-verdeel opnieuw. "
+            ))
 
         self.groupBox_step_redirect_flows = QtWidgets.QGroupBox(self)
         self.groupBox_step_redirect_flows.setTitle("stap 2: kies eindpunten en daarna herverdeel 3di debiet")
         self.box_step_redirect_flows = QtWidgets.QVBoxLayout()
         self.box_step_redirect_flows.addWidget(self.change_flow_direction_checkbox)
         self.box_step_redirect_flows.addWidget(self.step_redirect_flow_button)
+        self.box_step_redirect_flows.addWidget(self.step_redirect_flow_help_button)
         self.groupBox_step_redirect_flows.setLayout(self.box_step_redirect_flows)  # box toevoegen aan groupbox
 
         # surge selection:
@@ -289,7 +306,15 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.step3_button.clicked.connect(self.execute_step3_calculate_variants)
         self.step3_explanation_button = QtWidgets.QPushButton(self)
         self.step3_explanation_button.setObjectName("uitleg_stap3")
-        self.step3_explanation_button.clicked.connect(self.explain_step3)
+        self.step3_explanation_button.setText("Uitleg")
+        self.step3_explanation_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Stap 3: bereken profielvarianten",
+                "Bereken alle mogelijke profielvarianten op basis van de gekozen randvoorwaarden. Hier ontstaat de lijst met mogelijke leggerprofielen per object.\n"
+                "Let op: als een bestaande 'leggerdatabase' is ingelezen, dan kan het "
+                "zo zijn dat door deze actie uit te voeren bestaande varianten worden "
+                "overschreven met nieuwe (omdat randvoorwaarde verhang nu anders is."
+            ))
 
         self.groupBox_step3 = QtWidgets.QGroupBox(self)
         self.groupBox_step3.setTitle("Stap 3: bereken profielvarianten")
@@ -304,11 +329,20 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.step4_button.setObjectName("stap4")
         self.step4_button.setText("Standaard profielen toevoegen")
         self.step4_button.clicked.connect(self.execute_add_standard_profiles)
+        self.step4_explanation_button = QtWidgets.QPushButton(self)
+        self.step4_explanation_button.setObjectName("uitleg_stap4")
+        self.step4_explanation_button.setText("Uitleg")
+        self.step4_explanation_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Stap 4: standaard profielen toevoegen",
+                "Voegt standaardprofielen toe uit de vaste profielset. Deze worden nog niet automatisch ingevuld."
+            ))
 
         self.groupBox_step4 = QtWidgets.QGroupBox(self)
         self.groupBox_step4.setTitle("Stap 4: standaard profielen toevoegen")
         self.box_step4 = QtWidgets.QVBoxLayout()
         self.box_step4.addWidget(self.step4_button)
+        self.box_step4.addWidget(self.step4_explanation_button)
         self.groupBox_step4.setLayout(self.box_step4)
 
         # Assembling optional fill step
@@ -319,6 +353,11 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.step_optional_fill_explanation_button = QtWidgets.QPushButton(self)
         self.step_optional_fill_explanation_button.setObjectName("uitleg_optioneel_invullen")
         self.step_optional_fill_explanation_button.setText("Uitleg")
+        self.step_optional_fill_explanation_button.clicked.connect(
+            lambda: self.show_step_help(
+                "OPTIONEEL: Standaardprofielen invullen waar mogelijk",
+                "Vult standaardprofielen in waar deze passen en aan de verhangnorm voldoen. Vraag bij de invuller na of zij/hij deze vooraf ingevuld wil hebben."
+            ))
 
         self.groupBox_step_optional_fill = QtWidgets.QGroupBox(self)
         self.groupBox_step_optional_fill.setTitle("OPTIONEEL: Standaardprofielen invullen waar mogelijk")
@@ -334,6 +373,11 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.step5_explanation_button = QtWidgets.QPushButton(self)
         self.step5_explanation_button.setObjectName("uitleg_stap5")
         self.step5_explanation_button.setText("Uitleg")
+        self.step5_explanation_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Stap 5: bepaal score per variant",
+                "Bepaalt de fit van elke profielvariant weergegeven als score aan de hand van gemeten profielen. Let op, pas bij deze stap worden de profielvarianten toegevoegd."
+            ))
 
         self.groupBox_step5 = QtWidgets.QGroupBox(self)
         self.groupBox_step5.setTitle("Stap 5: bepaal score per variant")
@@ -343,33 +387,37 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.groupBox_step5.setLayout(self.box_step5)  # box toevoegen aan groupbox
 
         # Assembling run all
-        self.run_all_button = QtWidgets.QPushButton(self)
-        self.run_all_button.setObjectName("pre fill profiles")
-        self.run_all_button.clicked.connect(self.run_all)
-
-        self.groupBox_run_all = QtWidgets.QGroupBox(self)
-        self.groupBox_run_all.setTitle("Run alle")
-        self.box_run_all = QtWidgets.QHBoxLayout()
-
-        self.box_run_all.addWidget(self.run_all_button)
-        self.groupBox_run_all.setLayout(self.box_run_all)  # box toevoegen aan groupbox
-
-        # Assembling run all
         self.run_post_process_button = QtWidgets.QPushButton(self)
         self.run_post_process_button.clicked.connect(self.post_process)
+        self.post_process_help_button = QtWidgets.QPushButton(self)
+        self.post_process_help_button.setText("Uitleg")
+        self.post_process_help_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Totale opstuwing per peilgebied",
+                "Berekent de totale opstuwing per peilgebied door alle verhang bij elkaar op te tellen. Voegt voor elke duiker of brug in het traject 1 cm opstuwing toe. Bekijk het resultaat onder 'Opstuwing' in de laag 'Totale opstuwing'. De knop kan opnieuw worden gebruikt om na aanpassingen de totale opstuwing opnieuw te berekenen."
+            ))
         self.groupBox_post_process = QtWidgets.QGroupBox(self)
-        self.groupBox_post_process.setTitle("Naverwerking")
+        self.groupBox_post_process.setTitle("Totale opstuwing per peilgebied")
         self.box_run_post_process = QtWidgets.QHBoxLayout()
         self.box_run_post_process.addWidget(self.run_post_process_button)
+        self.box_run_post_process.addWidget(self.post_process_help_button)
         self.groupBox_post_process.setLayout(self.box_run_post_process)  # box toevoegen aan groupbox
 
         # export button
         self.run_export_button = QtWidgets.QPushButton(self)
         self.run_export_button.clicked.connect(self.export_to_gdb)
+        self.export_help_button = QtWidgets.QPushButton(self)
+        self.export_help_button.setText("Uitleg")
+        self.export_help_button.clicked.connect(
+            lambda: self.show_step_help(
+                "Export legger",
+                "Exporteert de hydroobjecten met afvoer, verhang en gekozen profielen voor verdere verwerking of uitwisseling. Deze worden gebruikt voor verwerking in DAMO."
+            ))
         self.groupBox_export = QtWidgets.QGroupBox(self)
         self.groupBox_export.setTitle("Export legger")
         self.box_run_export = QtWidgets.QHBoxLayout()
         self.box_run_export.addWidget(self.run_export_button)
+        self.box_run_export.addWidget(self.export_help_button)
         self.groupBox_export.setLayout(self.box_run_export)
 
         # Assembling feedback row
@@ -400,7 +448,6 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         self.verticalLayout.addWidget(self.groupBox_step_optional_fill)
         self.verticalLayout.addWidget(self.groupBox_step5)
         self.verticalLayout.addLayout(self.bottom_row)
-        self.verticalLayout.addWidget(self.groupBox_run_all)
         self.verticalLayout.addWidget(self.groupBox_post_process)
         self.verticalLayout.addWidget(self.groupBox_export)
         # self.verticalLayout.addWidget(self.groupBox_step3diold)
@@ -415,14 +462,20 @@ class ProfileCalculationWidget(QWidget):  # , FORM_CLASS):
         Dialog.setWindowTitle("Bereken de profielvarianten van de polder")
         self.save_button.setText("Opslaan en sluiten")
         self.step_redirect_flow_button.setText("Kies eerst eindpunten, dan herverdeel debieten")
-        self.step3_explanation_button.setText("Uitleg stap 3")
+        self.step3_explanation_button.setText("Uitleg")
         self.step3_button.setText("Bereken alle mogelijke leggerprofielen")
         self.step4_button.setText("Standaard profielen toevoegen")
         self.step5_button.setText("Bereken de fit van de berekende profielen")
         self.snap_points_button.setText("Snap hydroobjecten")
+        self.snap_points_help_button.setText("Uitleg")
+        self.step_redirect_flow_help_button.setText("Uitleg")
+        self.step4_explanation_button.setText("Uitleg")
+        self.step_optional_fill_explanation_button.setText("Uitleg")
+        self.step5_explanation_button.setText("Uitleg")
+        self.post_process_help_button.setText("Uitleg")
+        self.export_help_button.setText("Uitleg")
 
         self.step_optional_fill_button.setText("OPTIONEEL: Standaardprofielen invullen waar mogelijk")
-        self.run_all_button.setText("Run alle taken achter elkaar")
         self.run_post_process_button.setText("Opstuwing op basis van gekozen legger")
         self.run_export_button.setText("Export voor DAMO")
 
