@@ -65,6 +65,7 @@ class LayerManager():
         styled_layers = OrderedDict([
             ('basisgegevens', [
                 LayerDefinition('debiet', 'hydroobject', 'debiet', 'debiet', 'geometry', 'min_max_line', False),
+                LayerDefinition('taludvoorkeur', 'hydroobjects_kenmerken', 'taludvoorkeur', 'taludvoorkeur', 'geometry', None, False),
                 LayerDefinition('grondsoort', 'hydroobjects_kenmerken', 'grondsoort', 'grondsoort', 'geometry', None, False),
                 LayerDefinition('categorie', 'hydroobject', 'categorieoppwaterlichaam', 'category', 'geometry',
                                 'min_max_line', False),
