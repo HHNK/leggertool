@@ -65,13 +65,14 @@ class LayerManager():
         styled_layers = OrderedDict([
             ('basisgegevens', [
                 LayerDefinition('debiet', 'hydroobject', 'debiet', 'debiet', 'geometry', 'min_max_line', False),
+                LayerDefinition('taludvoorkeur', 'hydroobjects_kenmerken', 'taludvoorkeur', 'taludvoorkeur', 'geometry', None, False),
                 LayerDefinition('grondsoort', 'hydroobjects_kenmerken', 'grondsoort', 'grondsoort', 'geometry', None, False),
                 LayerDefinition('categorie', 'hydroobject', 'categorieoppwaterlichaam', 'category', 'geometry',
                                 'min_max_line', False),
                 # ('du debiet', 'duikersifonhevel', 'debiet', 'debiet', 'geometry', 'min_max_line'),
             ]),
-            ('afgeleid', [
-                LayerDefinition('Totaal verhang', 'hydroobjects_selected_legger', '', 'totaal_verhang', 'geometry', None, True)
+            ('Opstuwing', [
+                LayerDefinition('Totale opstuwing', 'hydroobjects_selected_legger', '', 'totaal_verhang', 'geometry', None, True)
             ]),
             ('tbv begroeiingsgraad', [
                 LayerDefinition('aanwijzen', 'hydroobject', 'begroeiingsvariant_id', 'begroeiingsvariant', 'geometry',
