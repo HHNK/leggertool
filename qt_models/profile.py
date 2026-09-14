@@ -113,12 +113,12 @@ class ProfileModel(ModifiedBaseModel):
                            column_name='talud',
                            column_tooltip='talud')
         width = ValueField(show=True,
-                           column_width=45,
+                           column_width=35,
                            round=2,
                            column_name='w-brd',
                            column_tooltip='Waterbreedte [m]')
         begroeiingsvariant = ValueField(show=True,
-                                        column_width=70,
+                                        column_width=55,
                                         column_name='begr',
                                         column_tooltip='begroeiingsvariant naam',
                                         color_from='begroeiingsvariant_color')
@@ -126,7 +126,7 @@ class ProfileModel(ModifiedBaseModel):
                                               default_value=(0, 0, 0, 0))
 
         score = ValueField(show=True,
-                           column_width=45,
+                           column_width=35,
                            round=2,
                            column_name='sc',
                            column_tooltip='score')
@@ -152,7 +152,7 @@ class ProfileModel(ModifiedBaseModel):
 
         verhang = ValueField(show=True,
                              column_width=45,
-                             round=1,
+                             round=2,
                              column_name='verh',
                              column_tooltip='verhang [cm/km]',
                              color_from='verhang_color')
