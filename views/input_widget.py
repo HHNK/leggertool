@@ -636,7 +636,7 @@ class NewWindow(QtWidgets.QWidget):
         self.label_debiet = QtWidgets.QLabel(self)
         self.label_debiet.setText(str(round(abs(self.hydro.normative_flow), 4)) + ' m3/s')
         self.label_debiet_inlet = QtWidgets.QLabel(self)
-        self.label_debiet_inlet.setText(str(round(abs(self.hydro.debiet_inlaat), 4)) + ' m3/s')
+        self.label_debiet_inlet.setText(str(round(abs(self.hydro.debiet_inlaat or 0), 4)) + ' m3/s')
         self.gridLayout.addWidget(label, 15, 0, 1, 1)
         self.gridLayout.addWidget(self.label_debiet, 15, 1, 1, 1)
         self.gridLayout.addWidget(self.label_debiet_inlet, 15, 2, 1, 1)
