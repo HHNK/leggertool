@@ -122,10 +122,10 @@ def calc_manning(normative_flow, ditch_bottom_width, water_depth, slope, frictio
 
 
 def get_depth_list(from_depth, to_depth):
-    out: typing.list[float] = []
-    depth = from_depth
+    out: typing.List[Decimal] = []
+    depth =Decimal(from_depth)
 
-    while depth <= to_depth:
+    while depth <= Decimal(to_depth):
         out.append(Decimal(depth))
 
         if depth <= Decimal(1.0):
