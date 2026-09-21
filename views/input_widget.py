@@ -269,7 +269,8 @@ class NewWindow(QtWidgets.QWidget):
                 begroeiingsvariant_id,
                 talud,
                 waterbreedte,
-                diepte
+                diepte,
+                opmerkingen
                 FROM varianten 
                 WHERE id = ?
                 """,(
@@ -286,6 +287,7 @@ class NewWindow(QtWidgets.QWidget):
                     'talud': Decimal(row[1]),
                     'waterbreedte': Decimal(row[2]),
                     'waterdiepte': Decimal(row[3]),
+                    'opmerking': row[4] or "",
                 }
 
         if defaults is None:
@@ -294,7 +296,13 @@ class NewWindow(QtWidgets.QWidget):
                 'talud': Decimal(self.settings.value("talud", 2)),
                 'waterbreedte': Decimal(self.settings.value("waterbreedte", 2.4)),
                 'waterdiepte': Decimal(self.settings.value("waterdiepte", 0.5)),
+                'opmerking': self.settings.value("opmerking", ""),
             }
+
+        default_extra_maintenance_depth = self.hydro.get_over_depth(defaults.get('waterbreedte', Decimal(2.4)))
+        if default_extra_maintenance_depth is None:
+            default_extra_maintenance_depth = Decimal(0)
+        default_extra_maintenance_depth = max(Decimal(0), Decimal(default_extra_maintenance_depth))
 
         # default begroeiingsvariant
         self.begroeiings_combo.setCurrentIndex(self.variants.index(defaults['begroeiingsgraad']))
@@ -305,6 +313,8 @@ class NewWindow(QtWidgets.QWidget):
         self.input_ditch_slope.setValue(defaults.get('talud'))
         self.input_ditch_width.setValue(defaults.get('waterbreedte'))
         self.input_waterdepth.setValue(defaults.get('waterdiepte'))
+        self.input_extra_maintenance_depth.setValue(float(default_extra_maintenance_depth))
+        self.input_remarks.setText(str(defaults.get('opmerking', '')))
 
         self.calculate_and_set_values()
 
@@ -312,6 +322,7 @@ class NewWindow(QtWidgets.QWidget):
         self.input_waterdepth.valueChanged.connect(self.calculate_and_set_values)
         self.input_ditch_width.valueChanged.connect(self.calculate_and_set_values)
         self.input_ditch_slope.valueChanged.connect(self.calculate_and_set_values)
+        self.input_extra_maintenance_depth.valueChanged.connect(self.calculate_and_set_values)
         self.begroeiings_combo.currentIndexChanged.connect(self.calculate_and_set_values)
         self.grondsoort_combo.currentIndexChanged.connect(self.calculate_and_set_values)
         self.custom_talud.stateChanged.connect(self.change_custom_talud)
@@ -321,6 +332,7 @@ class NewWindow(QtWidgets.QWidget):
         self.input_waterdepth.valueChanged.disconnect(self.calculate_and_set_values)
         self.input_ditch_width.valueChanged.disconnect(self.calculate_and_set_values)
         self.input_ditch_slope.valueChanged.disconnect(self.calculate_and_set_values)
+        self.input_extra_maintenance_depth.valueChanged.disconnect(self.calculate_and_set_values)
         self.begroeiings_combo.currentIndexChanged.disconnect(self.calculate_and_set_values)
         self.grondsoort_combo.currentIndexChanged.disconnect(self.calculate_and_set_values)
         self.custom_talud.stateChanged.disconnect(self.change_custom_talud)
@@ -333,6 +345,13 @@ class NewWindow(QtWidgets.QWidget):
 
         water_width = Decimal(self.input_ditch_width.value())
         water_depth = Decimal(self.input_waterdepth.value())
+        extra_maintenance_depth = Decimal(self.input_extra_maintenance_depth.value())
+        if extra_maintenance_depth < 0:
+            extra_maintenance_depth = Decimal(0)
+            self.input_extra_maintenance_depth.setValue(float(extra_maintenance_depth))
+        if extra_maintenance_depth > water_depth:
+            extra_maintenance_depth = water_depth
+            self.input_extra_maintenance_depth.setValue(float(extra_maintenance_depth))
         if self.custom_talud.isChecked():
             talud = Decimal(self.input_ditch_slope.value())
             self.settings.setValue("talud", float(talud))
@@ -345,6 +364,8 @@ class NewWindow(QtWidgets.QWidget):
         self.settings.setValue("begroeiingsgraad", begroeiings_variant)
         self.settings.setValue("waterbreedte", float(water_width))
         self.settings.setValue("waterdiepte", float(water_depth))
+        self.settings.setValue("extra_maintenance_depth", float(extra_maintenance_depth))
+        self.settings.setValue("opmerking", self.input_remarks.text())
 
         self.hydro.set_grondsoort(grondsoort)
 
@@ -352,6 +373,7 @@ class NewWindow(QtWidgets.QWidget):
             legger_depth=water_depth,
             water_width=water_width,
             slope=talud,
+            extra_maintenance_depth=extra_maintenance_depth,
         )
 
         bv = self.variant_mapping[begroeiings_variant]
@@ -387,6 +409,7 @@ class NewWindow(QtWidgets.QWidget):
         self.output_ditch_bottomwidth.setText(f"{try_round(size.get('bottom_width'), 2)} m")
         self.output_ditch_bottomwidth_hydraulic.setText(f"{try_round(size.get('hydraulic_bottom_width'), 2)} m hydraulisch")
         self.input_ditch_slope.setValue(size.get('slope'))
+        self.output_extra_maintenance_depth.setText(f"{try_round(extra_maintenance_depth, 2)} m")
 
         self.output_norm_gradient.setText(f"{try_round(self.hydro.gradient_norm, 2)} cm/ km")
         self.output_norm_gradient_inlet.setText(f"{try_round(self.hydro.gradient_norm_inlaat, 2)} cm/ km")
@@ -423,6 +446,9 @@ class NewWindow(QtWidgets.QWidget):
             self.output_waterdepth_hydraulic_inlet.setStyleSheet(
                 "color: black; font-weight: normal;"
             )
+
+        if extra_maintenance_depth < 0 or extra_maintenance_depth > water_depth:
+            valid = False
 
         # width of the ditch
         if size.get('bottom_width') < 0:
@@ -470,6 +496,7 @@ class NewWindow(QtWidgets.QWidget):
     def save_and_close(self):
 
         out = self.calculate_and_set_values()
+        out["opmerking"] = self.input_remarks.text().strip()
 
         if self.callback_on_save is not None:
             self.callback_on_save(out)
@@ -560,17 +587,39 @@ class NewWindow(QtWidgets.QWidget):
         self.input_waterdepth = QtWidgets.QDoubleSpinBox(self)
         self.input_waterdepth.setSuffix(" m")
         self.input_waterdepth.setSingleStep(0.1)
-
+        self.input_waterdepth.setMinimum(0.0)
         self.gridLayout.addWidget(label, 10, 0, 1, 1)
         self.gridLayout.addWidget(self.input_waterdepth, 10, 1, 1, 1)
 
-        # gradient
+        # extra diepte voor onderhoud
+        label = QtWidgets.QLabel(self)
+        label.setText("Marge onderhoud")
+        self.input_extra_maintenance_depth = QtWidgets.QDoubleSpinBox(self)
+        self.input_extra_maintenance_depth.setSuffix(" m")
+        self.input_extra_maintenance_depth.setSingleStep(0.05)
+        self.input_extra_maintenance_depth.setMinimum(0.0)
+        self.input_extra_maintenance_depth.setMaximum(99.0)
+        self.output_extra_maintenance_depth = QtWidgets.QLabel(self)
+        self.output_extra_maintenance_depth.setText('... m')
+        self.gridLayout.addWidget(label, 11, 0, 1, 1)
+        self.gridLayout.addWidget(self.input_extra_maintenance_depth, 11, 1, 1, 1)
+        self.gridLayout.addWidget(self.output_extra_maintenance_depth, 11, 2, 1, 1)
+
+        # opmerking
+        label = QtWidgets.QLabel(self)
+        label.setText("Opmerking")
+        self.input_remarks = QtWidgets.QLineEdit(self)
+        self.input_remarks.setPlaceholderText("Bijv. extra aandacht voor onderhoud")
+        self.gridLayout.addWidget(label, 12, 0, 1, 1)
+        self.gridLayout.addWidget(self.input_remarks, 12, 1, 1, 2)
+
+        # extra rij voor afvoer/inlaat en leggerdiepte
         label = QtWidgets.QLabel(self)
         label.setText("Afvoer:")
-        self.gridLayout.addWidget(label, 11, 1, 1, 1)
+        self.gridLayout.addWidget(label, 13, 1, 1, 1)
         label = QtWidgets.QLabel(self)
         label.setText("Inlaat:")
-        self.gridLayout.addWidget(label, 11, 2, 1, 1)
+        self.gridLayout.addWidget(label, 13, 2, 1, 1)
 
         label = QtWidgets.QLabel(self)
         label.setText("Leggerdiepte:")
@@ -578,19 +627,19 @@ class NewWindow(QtWidgets.QWidget):
         self.output_waterdepth_hydraulic.setText('... m')
         self.output_waterdepth_hydraulic_inlet = QtWidgets.QLabel(self)
         self.output_waterdepth_hydraulic_inlet.setText('... m')
-        self.gridLayout.addWidget(label, 12, 0, 1, 1)
-        self.gridLayout.addWidget(self.output_waterdepth_hydraulic, 12, 1, 1, 1)
-        self.gridLayout.addWidget(self.output_waterdepth_hydraulic_inlet, 12, 2, 1, 1)
+        self.gridLayout.addWidget(label, 14, 0, 1, 1)
+        self.gridLayout.addWidget(self.output_waterdepth_hydraulic, 14, 1, 1, 1)
+        self.gridLayout.addWidget(self.output_waterdepth_hydraulic_inlet, 14, 2, 1, 1)
 
         label = QtWidgets.QLabel(self)
         label.setText("Debiet:")
         self.label_debiet = QtWidgets.QLabel(self)
-        self.label_debiet.setText(str(round(abs(self.hydro.normative_flow), 4)) + ' m3/s')
+        self.label_debiet.setText(str(round(abs(self.hydro.normative_flow or 0), 4)) + ' m3/s')
         self.label_debiet_inlet = QtWidgets.QLabel(self)
-        self.label_debiet_inlet.setText(str(round(abs(self.hydro.debiet_inlaat), 4)) + ' m3/s')
-        self.gridLayout.addWidget(label, 13, 0, 1, 1)
-        self.gridLayout.addWidget(self.label_debiet, 13, 1, 1, 1)
-        self.gridLayout.addWidget(self.label_debiet_inlet, 13, 2, 1, 1)
+        self.label_debiet_inlet.setText(str(round(abs(self.hydro.debiet_inlaat or 0), 4)) + ' m3/s')
+        self.gridLayout.addWidget(label, 15, 0, 1, 1)
+        self.gridLayout.addWidget(self.label_debiet, 15, 1, 1, 1)
+        self.gridLayout.addWidget(self.label_debiet_inlet, 15, 2, 1, 1)
 
         label = QtWidgets.QLabel(self)
         label.setText("Norm:")
@@ -598,9 +647,9 @@ class NewWindow(QtWidgets.QWidget):
         self.output_norm_gradient.setText("... cm/ km")
         self.output_norm_gradient_inlet = QtWidgets.QLabel(self)
         self.output_norm_gradient_inlet.setText("... cm/ km")
-        self.gridLayout.addWidget(label, 14, 0, 1, 1)
-        self.gridLayout.addWidget(self.output_norm_gradient, 14, 1, 1, 1)
-        self.gridLayout.addWidget(self.output_norm_gradient_inlet, 14, 2, 1, 1)
+        self.gridLayout.addWidget(label, 16, 0, 1, 1)
+        self.gridLayout.addWidget(self.output_norm_gradient, 16, 1, 1, 1)
+        self.gridLayout.addWidget(self.output_norm_gradient_inlet, 16, 2, 1, 1)
 
         label = QtWidgets.QLabel(self)
         label.setText("Verhang:")
@@ -608,9 +657,9 @@ class NewWindow(QtWidgets.QWidget):
         self.output_gradient.setText("... cm/ km")
         self.output_inlet_gradient = QtWidgets.QLabel(self)
         self.output_inlet_gradient.setText("... cm/ km")
-        self.gridLayout.addWidget(label, 15, 0, 1, 1)
-        self.gridLayout.addWidget(self.output_gradient, 15, 1, 1, 1)
-        self.gridLayout.addWidget(self.output_inlet_gradient, 15, 2, 1, 1)
+        self.gridLayout.addWidget(label, 17, 0, 1, 1)
+        self.gridLayout.addWidget(self.output_gradient, 17, 1, 1, 1)
+        self.gridLayout.addWidget(self.output_inlet_gradient, 17, 2, 1, 1)
 
         # Horizontale bovenste rij toevoegen aan bovenkant verticale HOOFD layout.
         self.verticalLayout.addLayout(self.gridLayout)
@@ -644,7 +693,7 @@ class NewWindow(QtWidgets.QWidget):
         # Opslaan / Annuleer knoppen toevoegen aan onderkant verticale HOOFD layout
         self.verticalLayout.addLayout(self.bottom_row)
 
-        self.setWindowTitle("Extra profiel")
+        self.setWindowTitle("Aangepast profiel")
         QtCore.QMetaObject.connectSlotsByName(self)
 
 # Example usage (for testing purposes, typically instantiated from elsewhere in the plugin)

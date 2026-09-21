@@ -199,7 +199,7 @@ class CreateLeggerSpatialite(object):
             categorieoppwaterlichaam,
             winterpeil as streefpeil,
             zomerpeil,
-            debiet_aanvoer,
+            CASE WHEN debiet_aanvoer IS NULL THEN 0 ELSE debiet_aanvoer END AS debiet_inlaat,
             debiet_opgelegd_m3s,
             debiet_afvoer_prof,
             richting,

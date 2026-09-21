@@ -279,20 +279,28 @@ class HydroObject(object):
             'hydraulic_bottom_width': self.bottom_width_from_water_width(water_width, slope, hydraulic_depth),
         }
 
-    def get_profile_and_gradient_from_water_width_and_legger_depth(self, legger_depth, water_width, slope=None):
+    def get_profile_and_gradient_from_water_width_and_legger_depth(
+        self,
+        legger_depth,
+        water_width,
+        slope=None,
+        extra_maintenance_depth=None,
+    ):
         legger_depth = Decimal(legger_depth)
         water_width = Decimal(water_width)
 
         if slope is None:
             slope = self.get_slope(water_width)
-        over_depth = self.get_over_depth(water_width)
-        hydraulic_depth = legger_depth - over_depth
+        if extra_maintenance_depth is None:
+            extra_maintenance_depth = self.get_over_depth(water_width)
+        extra_maintenance_depth = max(Decimal(0), Decimal(extra_maintenance_depth))
+        hydraulic_depth = max(Decimal(0), legger_depth - extra_maintenance_depth)
         bottom_width = self.bottom_width_from_water_width(water_width, slope, legger_depth)
         hydraulic_bottom_width = self.bottom_width_from_water_width(water_width, slope, hydraulic_depth)
 
         return {
             'slope': slope,
-            'over_depth': over_depth,
+            'over_depth': extra_maintenance_depth,
             'bottom_width': bottom_width,
             'hydraulic_depth': hydraulic_depth,
             'hydraulic_bottom_width': hydraulic_bottom_width,
