@@ -11,6 +11,8 @@ def calc_pitlo_griffioen(flow, ditch_bottom_width, water_depth, slope, friction_
     A calculation of the formula for gradient in the water level according to Pitlo and Griffioen.
     Based on physical parameters like normative flow, ditch width, water depth and plant growth within the profile.
     """
+    if flow is None:
+        return 0.0
     flow = abs(flow)
     water_depth = float(water_depth)
     ditch_bottom_width = float(ditch_bottom_width)
